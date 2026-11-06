@@ -2,12 +2,20 @@
 
 NutGPUHub lets university students reserve one-hour time slots on GPU machines and lets machine operators manage availability for their assigned machines.
 
+**Course:** CPE 334, Semester 1/2026 · **Theme:** 1. Appointment and Scheduling System · **Repository:** https://github.com/Kawi-HBLI/NutGPUHub · **Sprint 1 release:** to be tagged on `main`
+
 ## Team
 
 | Name | GitHub |
 |---|---|
 | Tanadet Nuchaikaew | `Kawi-HBLI` |
 | Thawat Boonsuk | `Chessuker` |
+
+Student IDs are listed in the submitted PDF, not in this public repository.
+
+## Branches
+
+Feature branches start from `sprint-1-staging`. Teammate-reviewed PRs merge into `sprint-1-staging`, and the accepted staging release merges into `main`.
 
 ## Sprint 1 review package
 
