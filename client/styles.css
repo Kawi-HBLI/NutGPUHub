@@ -1,0 +1,38 @@
+:root {
+  font-family: system-ui, sans-serif;
+  color: #152238;
+  background: #edf3f9;
+}
+
+body { margin: 0; }
+
+main {
+  width: min(100% - 2rem, 28rem);
+  margin: clamp(2rem, 12vh, 7rem) auto 2rem;
+}
+
+.brand { font-size: 1.2rem; font-weight: 750; margin: 0 0 0.75rem; }
+
+.panel {
+  background: #fff;
+  border: 1px solid #cad7e6;
+  border-radius: 1rem;
+  padding: clamp(1rem, 5vw, 2rem);
+}
+
+h1 { margin: 0; font-size: 1.65rem; }
+p { line-height: 1.5; }
+form { display: grid; gap: 0.55rem; }
+label { font-weight: 650; }
+
+input, button {
+  font: inherit;
+  border-radius: 0.5rem;
+  padding: 0.65rem 0.85rem;
+}
+
+input { min-width: 0; border: 1px solid #8699ad; margin-bottom: 0.55rem; }
+button { background: #174785; color: #fff; border: 1px solid #174785; font-weight: 650; cursor: pointer; }
+button:disabled { opacity: 0.72; cursor: wait; }
+:focus-visible { outline: 3px solid #bc6b05; outline-offset: 2px; }
+.error { color: #9b2424; margin: 0.25rem 0 0.5rem; }

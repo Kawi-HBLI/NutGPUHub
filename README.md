@@ -31,3 +31,30 @@ These documents are drafts for team review. The test cases describe planned chec
 | [Sprint 1 feature contracts](docs/sprints/sprint-1/feature-contracts.md) | Screens, API behavior, acceptance criteria, and definition of done |
 | [Sprint 1 test specification](docs/sprints/sprint-1/test-specification.md) | Preconditions, actions, and expected results |
 | [Sprint 1 issue drafts](docs/sprints/sprint-1/issue-drafts.md) | Work order, verification, and PR review handoff |
+
+## Run the sign-in feature locally
+
+Use Node.js 24 and PostgreSQL. Create separate development and test databases and give the configured database user access to each. From the repository root, copy `.env.example` to `.env`, update both database URLs, and set a private `DEMO_PASSWORD` for the prepared accounts.
+
+```powershell
+Copy-Item .env.example .env
+npm ci
+npm run db:generate
+npm run db:migrate
+npm run db:seed
+```
+
+Run `npm run dev:api` in one terminal and `npm run dev:web` in another. Open `http://localhost:5173` and use `student-a` or `operator-a` with the password you set. The seed also prepares `student-b` and `operator-b` for later checks.
+
+To serve the built UI and API from one local address, run `npm run build`, set `APP_ORIGIN` in `.env` to `http://localhost:3000`, and run `npm start`. Restore `http://localhost:5173` in `.env` when returning to the Vite development server. Use `SESSION_TTL_MINUTES=60` and `COOKIE_SECURE=false` for local HTTP.
+
+If you seeded demo accounts with the earlier scrypt draft, run `npm run db:seed` again with your private `DEMO_PASSWORD`. This updates the demo credentials to Argon2id and ends existing sessions for those accounts.
+
+To run the authentication suite, migrate the test database once in a separate PowerShell window. Set the temporary `DATABASE_URL` to the same value as `TEST_DATABASE_URL` in `.env`, then clear it so the app and tests use their respective databases.
+
+```powershell
+$env:DATABASE_URL = '<test PostgreSQL URL>'
+npm run db:migrate
+Remove-Item Env:DATABASE_URL
+npm test
+```
