@@ -45,6 +45,11 @@ async function studentCookie(application = app): Promise<string> {
   return cookies[0].split(';', 1)[0];
 }
 
+// Count only this file's accounts so other test files can create sessions in parallel.
+function testSessionCount() {
+  return database.session.count({ where: { user: { username: { in: [student, operator] } } } });
+}
+
 test('TC-AUTH-01 returns both roles and rejects invalid credentials without creating a session', async () => {
   const studentResponse = await login(student).expect(200);
   const operatorResponse = await login(operator).expect(200);
@@ -52,13 +57,13 @@ test('TC-AUTH-01 returns both roles and rejects invalid credentials without crea
   expect(operatorResponse.body).toEqual({ id: expect.any(Number), username: operator, role: 'operator' });
   expect(studentResponse.headers['set-cookie'][0]).toMatch(/HttpOnly; SameSite=Lax/i);
 
-  const count = await database.session.count();
+  const count = await testSessionCount();
   const wrongPassword = await login(student, 'wrong-password').expect(401);
   const unknown = await login(`unknown-${suffix}`).expect(401);
   expect(wrongPassword.body).toEqual(unknown.body);
   expect(wrongPassword.headers['set-cookie']).toBeUndefined();
   expect(unknown.headers['set-cookie']).toBeUndefined();
-  expect(await database.session.count()).toBe(count);
+  expect(await testSessionCount()).toBe(count);
 });
 
 test('TC-AUTH-02 retrieves the account and rejects a signed-out cookie replay', async () => {
@@ -123,13 +128,13 @@ test('TC-AUTH-04 stores and verifies Argon2id hashes for every prepared account'
 });
 
 test('TC-VALID-01 rejects malformed sign-in requests without creating a session', async () => {
-  const sessionsBefore = await database.session.count();
+  const sessionsBefore = await testSessionCount();
   for (const body of [{ username: student }, { username: 123, password }]) {
     const response = await request(app).post('/api/v1/auth/login').set('Origin', origin).send(body).expect(400);
     expect(response.body.error).toEqual({ code: 'INVALID_CREDENTIALS_INPUT', message: expect.any(String) });
     expect(response.headers['set-cookie']).toBeUndefined();
   }
-  expect(await database.session.count()).toBe(sessionsBefore);
+  expect(await testSessionCount()).toBe(sessionsBefore);
 });
 
 test('authentication changes reject a request from another origin', async () => {
