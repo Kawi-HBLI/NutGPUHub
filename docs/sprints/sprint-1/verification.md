@@ -24,7 +24,7 @@ The rows below distinguish implemented assertions from the fuller planned scenar
 |---|---|---|---|
 | AC-01 | TC-BOOK-01, TC-E2E-01 | `tests/bookings.test.ts`: saved ID, Location and owner retrieval; `e2e/bookings.spec.ts`: book then reload My Bookings. | Passed. |
 | AC-02 | TC-BOOK-02, TC-E2E-02 | `tests/bookings.test.ts`: concurrent students get one 201 and one 409, one row and correct owner; browser stale-availability conflict. | Passed. |
-| AC-03 | TC-BOOK-03 | `tests/bookings.test.ts`: exactly-at-start request returns 409 and no booking for that slot. | At-start passed; add explicit after-start and just-before-start booking checks in #16. |
+| AC-03 | TC-BOOK-03 | `tests/bookings.test.ts`: after-start (13:00 at a 14:00 clock) and exactly-at-start requests return 409 `SLOT_ALREADY_STARTED` and save nothing; a request 1 ms before start returns 201. | Passed on the QA-01 branch (see below). |
 | AC-04 | TC-SLOT-01 | `tests/slots.test.ts`: consecutive 14:00/15:00 slots, duplicate rejected, two stored slots. | Passed. |
 | AC-05 | TC-SLOT-01, TC-TIME-01 | `tests/slots.test.ts` and `tests/time.test.ts`: off-hour rejection and whole-hour/offset parsing. | Passed. |
 | AC-06 | TC-AUTH-01 | `tests/auth.test.ts`: both roles, generic wrong-password/unknown-user error and unchanged session count. | Passed. |
@@ -32,14 +32,14 @@ The rows below distinguish implemented assertions from the fuller planned scenar
 | AC-08 | TC-ACCESS-01 | `tests/slots.test.ts`: student slot creation rejected without changes to the tested schedule. | Passed. |
 | AC-09 | TC-BOOK-01, TC-ACCESS-02 | `tests/bookings.test.ts` and `tests/view-bookings.test.ts`: another owner's detail returns 404 with no booking data. | Passed. |
 | AC-10 | TC-ACCESS-01, TC-ACCESS-02 | `tests/slots.test.ts` and `tests/view-bookings.test.ts`: unassigned operator cannot open/read the machine schedule. | Passed. |
-| AC-11 | TC-SLOT-02, TC-TIME-01 | `tests/bookings.test.ts`: booked and other-date slots excluded, Bangkok midnight slots included; `tests/time.test.ts`: UTC bounds. | Listed assertions passed. The current TC-SLOT-02 name overclaims started-slot exclusion: its fixtures contain no started slot. In #16, add that fixture/assertion and the valid empty-day case, or narrow the name until those checks exist. |
+| AC-11 | TC-SLOT-02, TC-TIME-01 | `tests/bookings.test.ts`: booked and other-date slots excluded, Bangkok midnight slots included; a separate test excludes past-hour and starts-now slots, keeps the next hour, and returns `200 []` for a valid day without slots; `tests/time.test.ts`: UTC bounds. | Passed on the QA-01 branch. The original test is renamed to the assertions it makes (date and booked filtering). |
 | AC-12 | TC-ACCESS-03 | `tests/bookings.test.ts`: anonymous/operator booking requests return 401/403 and leave a valid future slot unbooked; protected reads reject the wrong role. | Passed. |
-| AC-13 | TC-BOOK-03 | `tests/bookings.test.ts`: missing, invalid and unknown IDs return 400/404. | Status checks passed. The current TC-BOOK-03 name overclaims "without saving" for invalid/unknown requests: only the started-slot case has a row-count assertion. In #16, add scoped no-write assertions after each rejection or narrow the name to the assertions present. |
+| AC-13 | TC-BOOK-03 | `tests/bookings.test.ts`: missing, invalid and unknown IDs return 400/404, and the suite's booking count is checked unchanged after every rejected request. | Passed on the QA-01 branch. |
 | AC-14 | TC-ACCESS-02, TC-E2E-01 | `tests/view-bookings.test.ts`: assigned schedule includes correct booking/user and null for a free slot; browser operator sees student username. | Passed. |
 | AC-15 | TC-PERSIST-01 | `tests/view-bookings.test.ts`: new app/Prisma instance; `scripts/process-restart-check.ts`: real stop/start with same database and session. | Both checks passed; repeat on deployed release after Lab 5. |
 | AC-16 | TC-AUTH-03 | `tests/auth.test.ts`: 59-minute read succeeds, 60-minute read fails, persisted expiry unchanged. | Passed. |
 | AC-17 | TC-SLOT-03 | `tests/slots.test.ts`: past and exactly-current starts fail; future hour succeeds. | Passed. |
-| AC-18 | TC-ACCESS-02 | `tests/view-bookings.test.ts`: student list excludes the other student's booking; separate empty-list test. | Ownership/empty checks passed; multiple-own-booking ordering is implemented but needs a direct assertion in #16. |
+| AC-18 | TC-ACCESS-02 | `tests/view-bookings.test.ts`: student list excludes the other student's booking; separate empty-list test; two own bookings made late-first are listed earliest-first. | Passed on the QA-01 branch. |
 | AC-19 | TC-BOOK-04 | `tests/bookings.test.ts`: sequential and concurrent same-student same-hour conflicts; another hour succeeds. | Passed. |
 | AC-20 | TC-VALID-01 | `tests/auth.test.ts`: malformed login returns 400 and session count is unchanged. | Passed. |
 | AC-21 | TC-VALID-01 | `tests/slots.test.ts`: invalid/missing dates, malformed starts and unknown machine requests rejected. | Passed for the listed fixtures. |
@@ -47,6 +47,28 @@ The rows below distinguish implemented assertions from the fuller planned scenar
 | AC-23 | TC-AUTH-04 | `tests/auth.test.ts`: each prepared account has a distinct Argon2id hash, no plaintext match, and password verification succeeds. | Passed. |
 
 The API regression suite also checks unknown-path 404 behavior for anonymous/student/operator requests. These checks came from PR #9 review feedback, followed by the matching machine-router correction in PR #10.
+
+## QA-01 coverage additions
+
+The QA-01 branch `test/qa-01-coverage` (base `ded957b`) closes the four gaps above with test changes only. Runtime code is unchanged. Results on that branch, November 7, 2026:
+
+| Command | Result |
+|---|---|
+| `npm test` | 34 passed, 0 failed, 0 skipped; 5 files (`bookings.test.ts` 13, `view-bookings.test.ts` 6) |
+| `npm run build` | Passed |
+| `npm run test:e2e` | 2 passed, 0 failed, 0 skipped |
+| `npm run verify:restart` | Passed |
+
+The behavior already existed, so these tests passed when added and are not TDD red/green evidence. To show that each new assertion can fail, `server/bookings.ts` was changed temporarily and restored after each run:
+
+| Temporary change | Test that failed |
+|---|---|
+| Availability no longer filters out started slots | TC-SLOT-02 started-slot test |
+| Booking allowed when the slot starts exactly now | TC-BOOK-03 rejection test |
+| Booking rejected 1 ms before start | TC-BOOK-03 1 ms test (and the TC-SLOT-02 started-slot test, which expects that slot to be booked) |
+| My Bookings ordered by booking ID instead of slot start | AC-18 ordering test |
+
+The no-write assertions were not mutation-checked. Logs are under `evidence/qa-01/`. These are branch results; the final candidate run is still required.
 
 ## Required release follow-up
 
@@ -62,3 +84,4 @@ The API regression suite also checks unknown-path 404 behavior for anonymous/stu
 |---|---|---|---|
 | 0.1 | 2026-11-07 | Tanadet Nuchaikaew | Recorded reviewed F-04 execution, all Sprint 1 AC mappings and explicit gaps before final release. |
 | 0.2 | 2026-11-07 | Tanadet Nuchaikaew | PR #21 review: identified overclaiming test names and their QA-01 remediation; centralized execution-evidence qualifications here. |
+| 0.3 | 2026-11-07 | Thawat Boonsuk | QA-01: recorded the added started-slot, empty-day, booking-boundary, no-write and ordering tests with their branch results and mutation checks. |
