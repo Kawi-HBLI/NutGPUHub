@@ -4,7 +4,7 @@
 
 F-01 to F-04 were accepted through PRs [#7](https://github.com/Kawi-HBLI/NutGPUHub/pull/7), [#8](https://github.com/Kawi-HBLI/NutGPUHub/pull/8), [#9](https://github.com/Kawi-HBLI/NutGPUHub/pull/9) and [#10](https://github.com/Kawi-HBLI/NutGPUHub/pull/10). The accepted staging integration is `08e9aa40a50e0afb779b2248c04677b40f6697b5`.
 
-The latest independent execution recorded here was on `fc278e1ee5c712f93cb08f57bdbf613da2fbcd01`, the reviewed F-04 head, on November 7, 2026. Its runtime/test tree matches staging integration `08e9aa4`. This document refinement changes documentation only. These results are historical evidence, not execution on a future main release. QA-01 (#16) must identify and verify the actual submitted candidate; REL-01 (#17) records the immutable main release.
+The F-04 independent execution recorded here was on `fc278e1ee5c712f93cb08f57bdbf613da2fbcd01`, the reviewed F-04 head, on November 7, 2026. Its runtime/test tree matches staging integration `08e9aa4`. The post-F-04 requirement refinement changed documentation only. These results are historical evidence, not execution on a future main release. QA-01 (#16) must identify and verify the actual submitted candidate; REL-01 (#17) records the immutable main release.
 
 | Command | Actual result at fc278e1 | Evidence |
 |---|---|---|
@@ -70,6 +70,10 @@ The behavior already existed, so these tests passed when added and are not TDD r
 
 The empty-day test runs in its own schema because the shared test database may hold other fixtures' slots on any date (PR #22 review). It still passed after an unrelated slot was inserted on 2031-01-08 in the shared schema; that slot was removed afterwards and no isolated schema was left behind. The no-write assertions were not mutation-checked. Logs are under `evidence/qa-01/`. These results identify the tested commit above, not the final release candidate, which still needs its own run.
 
+## UI-01 integration checks
+
+The [UI-01 record](ui-verification.md) documents the restyle built from staging `81a7300`, with before/after screenshots and rendered-state checks. The same 35 unit/API tests, both browser journeys, build and real-process restart check passed with the shared presentation components. The UI-01 PR identifies the corresponding committed implementation for peer review.
+
 ## Required release follow-up
 
 - Complete the explicit coverage gaps above in #16 and report actual failures/skips rather than marking the full STS passed from its test ID alone.
@@ -86,3 +90,4 @@ The empty-day test runs in its own schema because the shared test database may h
 | 0.2 | 2026-11-07 | Tanadet Nuchaikaew | PR #21 review: identified overclaiming test names and their QA-01 remediation; centralized execution-evidence qualifications here. |
 | 0.3 | 2026-11-07 | Thawat Boonsuk | QA-01: recorded the added started-slot, empty-day, booking-boundary, no-write and ordering tests with their branch results and mutation checks. |
 | 0.4 | 2026-11-07 | Thawat Boonsuk | PR #22 review: moved the empty-day check to an isolated schema and recorded the exact tested commit. |
+| 0.5 | 2026-11-07 | Tanadet Nuchaikaew | Linked UI-01 visual checks and the unchanged regression suite results after the restyle. |

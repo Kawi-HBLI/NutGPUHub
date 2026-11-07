@@ -25,7 +25,7 @@ Create feature branches from the active sprint staging branch. Use `Closes #<iss
 | [#2](https://github.com/Kawi-HBLI/NutGPUHub/issues/2) | F-02 publish slots | Sprint 1 | Thawat; accepted PR #8. |
 | [#3](https://github.com/Kawi-HBLI/NutGPUHub/issues/3) | F-03 availability and booking | Sprint 1 | Tanadet; accepted PR #9. |
 | [#4](https://github.com/Kawi-HBLI/NutGPUHub/issues/4) | F-04 booking lists and operator details | Sprint 1 | Thawat; accepted PR #10. |
-| [#6](https://github.com/Kawi-HBLI/NutGPUHub/issues/6) | UI-01 consistent visual style | Sprint 1 | Existing supporting scope; its own peer review and visual checks remain required. |
+| [#6](https://github.com/Kawi-HBLI/NutGPUHub/issues/6) | UI-01 consistent visual style | Sprint 1 | Tanadet implements; Thawat reviews. Shared components and visual evidence are in the UI-01 PR and [verification record](sprints/sprint-1/ui-verification.md). |
 | [#11](https://github.com/Kawi-HBLI/NutGPUHub/issues/11) | DOC-01 requirement/evidence refinement | Sprint 1 | Tanadet; current documentation PR, peer review required. |
 | [#16](https://github.com/Kawi-HBLI/NutGPUHub/issues/16) | QA-01 integrated acceptance evidence | Sprint 1 | Tanadet coordinates; complete documented gaps and verify the accepted candidate. |
 | [#17](https://github.com/Kawi-HBLI/NutGPUHub/issues/17) | REL-01 main release and A-F PDF | Sprint 1 | Thawat coordinates release/PDF; the other student reviews; both validate contributions. |
@@ -62,3 +62,4 @@ The November 7 organization adds work items prospectively for remaining work and
 |---|---|---|---|
 | 0.1 | 2026-11-07 | Tanadet Nuchaikaew | Added explicit work categories, Issue/dependency map and real acceptance versus release gates. |
 | 0.2 | 2026-11-07 | Tanadet Nuchaikaew | PR #21 review: added the verified GitHub login/display-name mapping for the Part F contribution table. |
+| 0.3 | 2026-11-07 | Tanadet Nuchaikaew | Recorded UI-01 ownership and the visual-verification handoff. |

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { apiRequest, bangkokToday, formatBangkokDate, formatBangkokTime } from './api';
+import { Alert, Button, Card, Input, StatusBadge } from './components';
 
 type Slot = { slotId: number; machineCode: string; startAt: string; endAt: string };
 type Booking = Slot & { bookingId: number };
@@ -63,36 +64,48 @@ export function StudentWorkspace() {
   }
 
   return <div className="workspace">
-    <label htmlFor="booking-date">Booking date (Bangkok)</label>
-    <input id="booking-date" type="date" value={date} disabled={pending} onChange={event => setDate(event.target.value)} />
-    {notice && <p className={notice.error ? 'error' : 'success'} role={notice.error ? 'alert' : 'status'}>{notice.text}</p>}
-    <h2>Available slots</h2>
-    {slots.state === 'loading' && <p>Loading available slots…</p>}
-    {slots.state === 'error' && <><p className="error" role="alert">{slots.message}</p><button onClick={() => setRefresh(value => value + 1)}>Try again</button></>}
-    {slots.state === 'ready' && slots.data.length === 0 && <p>No available slots on this date.</p>}
-    {slots.state === 'ready' && <ul className="schedule">
-      {slots.data.map(slot => <li key={slot.slotId}>
-        <span>{slot.machineCode} · {formatBangkokTime(slot.startAt)}–{formatBangkokTime(slot.endAt)}</span>{' '}
-        <button disabled={pending} onClick={() => void book(slot)} aria-label={`Book ${slot.machineCode} at ${formatBangkokTime(slot.startAt)}`}>Book</button>
-      </li>)}
-    </ul>}
-    {booking && <section aria-labelledby="saved-booking">
-      <h2 id="saved-booking">Saved booking #{booking.bookingId}</h2>
-      <p>{booking.machineCode} · {formatBangkokDate(booking.startAt)} · {formatBangkokTime(booking.startAt)}–{formatBangkokTime(booking.endAt)} (Bangkok)</p>
-      <a href={`?booking=${booking.bookingId}`}>Open saved booking</a>
-    </section>}
-    <section aria-labelledby="my-bookings">
-      <h2 id="my-bookings">My bookings</h2>
-      {myBookings.state === 'loading' && <p>Loading your bookings…</p>}
-      {myBookings.state === 'error' && <p className="error" role="alert">{myBookings.message}</p>}
-      {myBookings.state === 'ready' && myBookings.data.length === 0 && <p>You have no bookings yet.</p>}
-      {myBookings.state === 'ready' && myBookings.data.length > 0 && <ul className="schedule" aria-label="My bookings">
-        {myBookings.data.map(item => <li key={item.bookingId}>
-          <a href={`?booking=${item.bookingId}`}>
-            {item.machineCode} · {formatBangkokDate(item.startAt)} · {formatBangkokTime(item.startAt)}–{formatBangkokTime(item.endAt)}
-          </a>
-        </li>)}
-      </ul>}
-    </section>
+    <Card aria-labelledby="available-slots-heading">
+      <div className="card-heading"><h2 id="available-slots-heading">Available slots</h2>
+        <p>Choose a date and reserve one hour on a GPU machine.</p></div>
+      <div className="field date-filter"><label htmlFor="booking-date">Booking date (Bangkok)</label>
+        <Input id="booking-date" type="date" value={date} disabled={pending} onChange={event => setDate(event.target.value)} /></div>
+      {notice && <Alert tone={notice.error ? 'error' : 'success'}>{notice.text}</Alert>}
+      <div className="slot-list" aria-busy={slots.state === 'loading'}>
+        {slots.state === 'loading' && <Alert tone="loading">Loading available slots…</Alert>}
+        {slots.state === 'error' && <div className="form-stack"><Alert tone="error">{slots.message}</Alert>
+          <Button variant="secondary" onClick={() => setRefresh(value => value + 1)}>Try again</Button></div>}
+        {slots.state === 'ready' && slots.data.length === 0 && <Alert tone="empty">No available slots on this date.</Alert>}
+        {slots.state === 'ready' && <ul className="schedule" aria-label="Available slots">
+          {slots.data.map(slot => <li className="slot-row" key={slot.slotId}>
+            <div className="slot-info"><span><strong>{slot.machineCode}</strong> · {formatBangkokTime(slot.startAt)}–{formatBangkokTime(slot.endAt)}</span>
+              <span><StatusBadge tone="available">Available</StatusBadge></span></div>
+            <Button disabled={pending} onClick={() => void book(slot)} aria-label={`Book ${slot.machineCode} at ${formatBangkokTime(slot.startAt)}`}>Book</Button>
+          </li>)}
+        </ul>}
+      </div>
+    </Card>
+    <div className="workspace-column">
+      {booking && <Card className="booking-detail" aria-labelledby="saved-booking">
+        <StatusBadge tone="booked">Confirmed</StatusBadge>
+        <h2 id="saved-booking" className="booking-meta">Saved booking #{booking.bookingId}</h2>
+        <p>{booking.machineCode} · {formatBangkokDate(booking.startAt)} · {formatBangkokTime(booking.startAt)}–{formatBangkokTime(booking.endAt)} (Bangkok)</p>
+        <a href={`?booking=${booking.bookingId}`}>Open saved booking</a>
+      </Card>}
+      <Card aria-labelledby="my-bookings">
+        <div className="card-heading"><h2 id="my-bookings">My bookings</h2><p>Your saved reservations, ordered by start time.</p></div>
+        {myBookings.state === 'loading' && <Alert tone="loading">Loading your bookings…</Alert>}
+        {myBookings.state === 'error' && <Alert tone="error">{myBookings.message}</Alert>}
+        {myBookings.state === 'ready' && myBookings.data.length === 0 && <Alert tone="empty">You have no bookings yet.</Alert>}
+        {myBookings.state === 'ready' && myBookings.data.length > 0 && <ul className="schedule" aria-label="My bookings">
+          {myBookings.data.map(item => <li key={item.bookingId}>
+            <StatusBadge tone={new Date(item.startAt).getTime() <= Date.now() ? 'past' : 'booked'}>
+              {new Date(item.startAt).getTime() <= Date.now() ? 'Started / past' : 'Confirmed'}</StatusBadge>
+            <a className="booking-link" href={`?booking=${item.bookingId}`}>
+              {item.machineCode} · {formatBangkokDate(item.startAt)} · {formatBangkokTime(item.startAt)}–{formatBangkokTime(item.endAt)}
+            </a>
+          </li>)}
+        </ul>}
+      </Card>
+    </div>
   </div>;
 }

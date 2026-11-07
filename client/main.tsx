@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { setSessionExpiredHandler } from './api';
 import { OperatorWorkspace } from './operator';
 import { StudentWorkspace } from './student';
+import { Alert, Brand, Button, Card, Input, StatusBadge } from './components';
 import './styles.css';
 
 type Account = { id: number; username: string; role: 'student' | 'operator' };
@@ -75,37 +76,63 @@ function App() {
   }
 
   return (
-    <main>
-      <p className="brand">NutGPUHub</p>
-      <section className="panel" aria-labelledby="page-heading">
-        {phase === 'checking' && <h1 id="page-heading">Checking your session…</h1>}
-        {phase === 'unavailable' && <>
-          <h1 id="page-heading">Connection unavailable</h1>
-          <p>NutGPUHub could not check your session.</p>
-          <button onClick={() => location.reload()}>Try again</button>
-        </>}
+    <>
+      <a className="skip-link" href="#main-content">Skip to content</a>
+      <header className="site-header"><div className="header-inner">
+        <Brand />
+        <p className="service-note">One machine. One hour.<br />All times in Asia/Bangkok</p>
+      </div></header>
+      <main id="main-content" className="app-main" tabIndex={-1}>
+        {phase === 'checking' && <Card className="connection-card">
+          <h1>Checking your session…</h1>
+          <Alert tone="loading">Connecting to your workspace.</Alert>
+        </Card>}
+        {phase === 'unavailable' && <Card className="connection-card">
+          <h1>Connection unavailable</h1>
+          <Alert tone="error">NutGPUHub could not check your session.</Alert>
+          <Button onClick={() => location.reload()}>Try again</Button>
+        </Card>}
         {phase === 'ready' && account && <>
-          <h1 id="page-heading">{account.role === 'student' ? 'Student workspace' : 'Operator workspace'}</h1>
-          <p>Signed in as <strong>{account.username}</strong> ({account.role}).</p>
-          {error && <p className="error" role="alert">{error}</p>}
-          <button onClick={signOut} disabled={pending}>{pending ? 'Signing out…' : 'Sign out'}</button>
+          <div className="page-header">
+            <div>
+              <p className="eyebrow">Your GPU schedule</p>
+              <h1>{account.role === 'student' ? 'Student workspace' : 'Operator workspace'}</h1>
+              <p className="muted">Signed in as <strong>{account.username}</strong> ({account.role}).</p>
+            </div>
+            <div className="page-actions">
+              <StatusBadge tone="past">{account.role === 'student' ? 'Student' : 'Operator'}</StatusBadge>
+              <Button variant="secondary" onClick={signOut} disabled={pending}>{pending ? 'Signing out…' : 'Sign out'}</Button>
+            </div>
+          </div>
+          {error && <Alert tone="error">{error}</Alert>}
           {account.role === 'operator' && <OperatorWorkspace />}
           {account.role === 'student' && <StudentWorkspace />}
         </>}
-        {phase === 'ready' && !account && <>
-          <h1 id="page-heading">Sign in</h1>
-          <p>Use your NutGPUHub account to access the university GPU schedule.</p>
-          <form onSubmit={signIn}>
-            <label htmlFor="username">Username</label>
-            <input id="username" name="username" autoComplete="username" required maxLength={80} />
-            <label htmlFor="password">Password</label>
-            <input id="password" name="password" type="password" autoComplete="current-password" required maxLength={256} />
-            {error && <p className="error" role="alert">{error}</p>}
-            <button disabled={pending}>{pending ? 'Signing in…' : 'Sign in'}</button>
-          </form>
-        </>}
-      </section>
-    </main>
+        {phase === 'ready' && !account && <div className="login-layout">
+          <div className="login-intro">
+            <p className="eyebrow">Shared compute, clearly scheduled</p>
+            <p className="login-headline">Reserve your<br />next hour.</p>
+            <p>Find a GPU slot, save your reservation, and keep your coursework moving.</p>
+            <div className="login-facts"><span>One-hour slots</span><span>Student &amp; operator access</span><span>Bangkok time</span></div>
+          </div>
+          <Card className="login-card" aria-labelledby="sign-in-heading">
+            <div className="card-heading">
+              <h1 id="sign-in-heading">Sign in</h1>
+              <p>Use your NutGPUHub account to access the university GPU schedule.</p>
+            </div>
+            <form className="form-stack" onSubmit={signIn}>
+              <div className="field"><label htmlFor="username">Username</label>
+                <Input id="username" name="username" autoComplete="username" required maxLength={80} /></div>
+              <div className="field"><label htmlFor="password">Password</label>
+                <Input id="password" name="password" type="password" autoComplete="current-password" required maxLength={256} /></div>
+              {error && <Alert tone="error">{error}</Alert>}
+              <Button type="submit" disabled={pending}>{pending ? 'Signing in…' : 'Sign in'}</Button>
+            </form>
+          </Card>
+        </div>}
+      </main>
+      <footer className="site-footer">NutGPUHub · University GPU reservations · Asia/Bangkok</footer>
+    </>
   );
 }
 
