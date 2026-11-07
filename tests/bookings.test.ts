@@ -109,6 +109,21 @@ test('TC-ACCESS-03 protects all student routes from anonymous and operator reque
     await request(app).get(path).expect(401);
     await request(app).get(path).set('Cookie', cookies[2]).expect(403);
   }
-  await book(1, '').expect(401);
-  await book(1, cookies[2]).expect(403);
+  const available = await slot('2031-01-07T14:00:00+07:00');
+  await book(available.id, '').expect(401);
+  expect(await database.booking.count({ where: { slotId: available.id } })).toBe(0);
+  await book(available.id, cookies[2]).expect(403);
+  expect(await database.booking.count({ where: { slotId: available.id } })).toBe(0);
+});
+
+test.each([
+  ['anonymous', '/api/v1/nope', -1],
+  ['operator', '/api/v1/nope', 2],
+  ['student', '/api/v1/nope', 0],
+  ['operator', '/api/v1/machines/1/nope', 2],
+] as const)('unknown API path returns 404 for %s: %s', async (_role, path, account) => {
+  const response = request(app).get(path);
+  if (account >= 0) response.set('Cookie', cookies[account]);
+  const result = await response.expect(404);
+  expect(result.body.error.code).toBe('NOT_FOUND');
 });

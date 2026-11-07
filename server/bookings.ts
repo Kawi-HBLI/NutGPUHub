@@ -9,9 +9,9 @@ type Guard = ReturnType<typeof createSessionGuard>;
 
 export function createStudentRouter(database: PrismaClient, clock: () => number, guard: Guard) {
   const router = express.Router();
-  router.use(guard.requireAccount, guard.requireRole('student'));
+  const studentOnly = [guard.requireAccount, guard.requireRole('student')];
 
-  router.get('/slots', asyncRoute(async (request, response) => {
+  router.get('/slots', ...studentOnly, asyncRoute(async (request, response) => {
     const day = bangkokDayRange(request.query.date);
     if (!day) {
       sendError(response, 400, 'INVALID_DATE', 'Choose a date in YYYY-MM-DD format.');
@@ -25,7 +25,7 @@ export function createStudentRouter(database: PrismaClient, clock: () => number,
     response.json(slots.map(slot => ({ ...slotView(slot), machineCode: slot.machine.code })));
   }));
 
-  router.post('/bookings', asyncRoute(async (request, response) => {
+  router.post('/bookings', ...studentOnly, asyncRoute(async (request, response) => {
     const slotId = request.body?.slotId;
     if (!Number.isSafeInteger(slotId) || slotId < 1 || slotId > 2_147_483_647) {
       sendError(response, 400, 'INVALID_SLOT_ID', 'Choose a valid slot.');
@@ -57,7 +57,7 @@ export function createStudentRouter(database: PrismaClient, clock: () => number,
     }
   }));
 
-  router.get('/bookings/:bookingId', asyncRoute(async (request, response) => {
+  router.get('/bookings/:bookingId', ...studentOnly, asyncRoute(async (request, response) => {
     const id = /^[1-9]\d{0,9}$/.test(request.params.bookingId) ? Number(request.params.bookingId) : NaN;
     const booking = Number.isSafeInteger(id) && id <= 2_147_483_647
       ? await database.booking.findFirst({
