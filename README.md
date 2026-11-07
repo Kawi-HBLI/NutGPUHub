@@ -68,4 +68,10 @@ npx playwright install chromium
 npm run test:e2e
 ```
 
+`TC-PERSIST-01` also has a system-level check that stops and restarts the real Node process. It builds the app, books a slot through a server on port 3101 using `TEST_DATABASE_URL`, stops that process, starts a new one, and reads the booking back with the same session. It removes its own records afterwards.
+
+```powershell
+npm run verify:restart
+```
+
 Students see their saved reservations under **My bookings**, and operators see who booked each slot in the machine schedule.
