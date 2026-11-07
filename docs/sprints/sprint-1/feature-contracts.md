@@ -97,8 +97,10 @@ Students use **My Bookings** to list their saved reservations and open the booki
 
 | API | Contract |
 |---|---|
-| `GET /api/v1/bookings` | Return `200` with only the signed-in student's bookings, including machine code and slot times. |
-| `GET /api/v1/machines/{machineId}/slots?date=YYYY-MM-DD` | Extend the F-02 response with a `booking` field on each slot. A booked slot includes the booking ID and student username. A free slot has `booking: null`. Keep the F-02 role, assignment, and error rules. |
+| `GET /api/v1/bookings` | Return `200` with only the signed-in student's bookings, ordered by slot start. Each entry contains `bookingId`, `slotId`, `machineId`, `machineCode`, `startAt`, and `endAt`. Return an empty list when the student has no bookings. Requires a valid session (`401 AUTH_REQUIRED`) and the student role (`403 FORBIDDEN`). |
+| `GET /api/v1/machines/{machineId}/slots?date=YYYY-MM-DD` | Extend the F-02 response with a `booking` field on each slot. A booked slot has `booking: { bookingId, studentUsername }`. A free slot has `booking: null`. Keep the F-02 role, assignment, and error rules. |
+
+The F-02 operator guards are now attached per route, like the F-03 student guards, so an unknown path under `/api/v1/machines` returns `404 NOT_FOUND` instead of `401`.
 
 - **AC-14:** An assigned operator can retrieve the schedule and booking details for their machine. AC-10 covers rejection for an unassigned machine.
 - **AC-15:** A student can retrieve a confirmed booking after an application restart using the same database.
@@ -127,3 +129,4 @@ The Sprint 1 release also requires the integrated browser journeys, local setup 
 | 0.2 | 2026-11-06 | Thawat Boonsuk | Added the layer and data table to each feature. Added AC-18 to AC-23 for BR-04, input errors and password storage. AC-09 now covers detail only, and the list check moved to AC-18. Session expiry set to one hour. Expanded the Definition of Done. |
 | 0.3 | 2026-11-06 | Thawat Boonsuk | F-02 implemented: recorded the machine response fields, the error codes for each F-02 route, and the database check for whole-hour starts. |
 | 0.4 | 2026-11-07 | Tanadet Nuchaikaew | F-03 review: recorded input, missing-resource and access error codes, and clarified that student guards apply only to matching F-03 routes. |
+| 0.5 | 2026-11-07 | Thawat Boonsuk | F-04 implemented: recorded the My Bookings and schedule booking fields, and moved the F-02 operator guards to individual routes. |

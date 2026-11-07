@@ -57,6 +57,18 @@ export function createStudentRouter(database: PrismaClient, clock: () => number,
     }
   }));
 
+  /** F-04 My Bookings: only the signed-in student's bookings, soonest first (AC-18). */
+  router.get('/bookings', ...studentOnly, asyncRoute(async (_request, response) => {
+    const bookings = await database.booking.findMany({
+      where: { studentId: currentAccount(response).id },
+      include: { slot: { include: { machine: { select: { code: true } } } } },
+      orderBy: [{ slotStartAt: 'asc' }, { id: 'asc' }],
+    });
+    response.json(bookings.map(booking => ({
+      bookingId: booking.id, ...slotView(booking.slot), machineCode: booking.slot.machine.code,
+    })));
+  }));
+
   router.get('/bookings/:bookingId', ...studentOnly, asyncRoute(async (request, response) => {
     const id = /^[1-9]\d{0,9}$/.test(request.params.bookingId) ? Number(request.params.bookingId) : NaN;
     const booking = Number.isSafeInteger(id) && id <= 2_147_483_647

@@ -19,7 +19,8 @@ export function slotView(slot: SlotRecord) {
 /** F-02: operators list assigned machines, read a machine's day schedule and open slots. */
 export function createMachineRouter(database: PrismaClient, clock: () => number, guard: Guard) {
   const router = express.Router();
-  router.use(guard.requireAccount, guard.requireRole('operator'));
+  // Guards are attached per route so unmatched paths still reach the API's 404 handler.
+  const operatorOnly = [guard.requireAccount, guard.requireRole('operator')];
 
   /** Finds the machine and checks that the signed-in operator is assigned to it. Sends 404 or 403 otherwise. */
   async function assignedMachine(rawId: string, response: Response) {
@@ -38,7 +39,7 @@ export function createMachineRouter(database: PrismaClient, clock: () => number,
     return machine;
   }
 
-  router.get('/', asyncRoute(async (_request, response) => {
+  router.get('/', ...operatorOnly, asyncRoute(async (_request, response) => {
     const machines = await database.gpuMachine.findMany({
       where: { operatorId: currentAccount(response).id },
       orderBy: { code: 'asc' },
@@ -46,7 +47,7 @@ export function createMachineRouter(database: PrismaClient, clock: () => number,
     response.json(machines.map(machine => ({ machineId: machine.id, machineCode: machine.code })));
   }));
 
-  router.get('/:machineId/slots', asyncRoute(async (request, response) => {
+  router.get('/:machineId/slots', ...operatorOnly, asyncRoute(async (request, response) => {
     const machine = await assignedMachine(request.params.machineId, response);
     if (!machine) return;
     const day = bangkokDayRange(request.query.date);
@@ -57,11 +58,19 @@ export function createMachineRouter(database: PrismaClient, clock: () => number,
     const slots = await database.slot.findMany({
       where: { machineId: machine.id, startAt: { gte: day.start, lt: day.end } },
       orderBy: { startAt: 'asc' },
+      include: { bookings: { select: { id: true, student: { select: { username: true } } } } },
     });
-    response.json(slots.map(slotView));
+    // F-04 (AC-14): the assigned operator sees who booked each slot. A slot has at most one booking (BR-01).
+    response.json(slots.map(slot => {
+      const booking = slot.bookings[0];
+      return {
+        ...slotView(slot),
+        booking: booking ? { bookingId: booking.id, studentUsername: booking.student.username } : null,
+      };
+    }));
   }));
 
-  router.post('/:machineId/slots', asyncRoute(async (request, response) => {
+  router.post('/:machineId/slots', ...operatorOnly, asyncRoute(async (request, response) => {
     const machine = await assignedMachine(request.params.machineId, response);
     if (!machine) return;
     const startAt = parseOffsetTimestamp(request.body?.startAt);
