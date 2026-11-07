@@ -10,7 +10,9 @@ if (!url || url === process.env.DATABASE_URL) throw new Error('Use a separate mi
 const database = new PrismaClient({ datasourceUrl: url });
 const origin = 'http://localhost:5173';
 const now = Date.parse('2030-01-01T14:00:00+07:00');
-const app = createApp(database, origin, { clock: () => now });
+// Tests in one file run in order, so a test may move the clock as long as it restores `now`.
+let current = now;
+const app = createApp(database, origin, { clock: () => current });
 const suffix = randomUUID().slice(0, 8);
 const password = randomBytes(18).toString('hex');
 const names = ['a', 'b', 'operator'].map(name => `${name}-booking-${suffix}`);
@@ -43,6 +45,14 @@ function slot(date: string, machine = machines[0]) {
 }
 function book(slotId: unknown, cookie = cookies[0]) {
   return request(app).post('/api/v1/bookings').set('Origin', origin).set('Cookie', cookie).send({ slotId });
+}
+function suiteBookingCount() {
+  return database.booking.count({ where: { studentId: { in: users } } });
+}
+async function availableOnOwnMachines(date: string) {
+  const result = await request(app).get(`/api/v1/slots?date=${date}`).set('Cookie', cookies[0]).expect(200);
+  return (result.body as { slotId: number; machineId: number }[])
+    .filter(row => machines.includes(row.machineId)).map(row => row.slotId);
 }
 
 test('TC-BOOK-01 saves a booking and AC-09 protects its detail', async () => {
@@ -84,15 +94,49 @@ test('TC-BOOK-04 concurrent requests for different machines reserve one hour onc
 });
 
 test('TC-BOOK-03 rejects invalid, unknown and started slots without saving', async () => {
-  for (const invalid of [undefined, 0, -1, 1.5, '1', 2_147_483_648]) await book(invalid).expect(400);
+  const before = await suiteBookingCount();
+  for (const invalid of [undefined, 0, -1, 1.5, '1', 2_147_483_648]) {
+    await book(invalid).expect(400);
+    expect(await suiteBookingCount()).toBe(before);
+  }
   await book(2_147_483_647).expect(404);
-  const started = await slot('2030-01-01T14:00:00+07:00');
-  const result = await book(started.id).expect(409);
-  expect(result.body.error.code).toBe('SLOT_ALREADY_STARTED');
-  expect(await database.booking.count({ where: { slotId: started.id } })).toBe(0);
+  expect(await suiteBookingCount()).toBe(before);
+  // The clock is 14:00. A 13:00 slot started an hour ago and a 14:00 slot starts exactly now.
+  for (const startAt of ['2030-01-01T13:00:00+07:00', '2030-01-01T14:00:00+07:00']) {
+    const started = await slot(startAt);
+    const result = await book(started.id).expect(409);
+    expect(result.body.error.code).toBe('SLOT_ALREADY_STARTED');
+    expect(await database.booking.count({ where: { slotId: started.id } })).toBe(0);
+    expect(await suiteBookingCount()).toBe(before);
+  }
 });
 
-test('TC-SLOT-02 filters availability by Bangkok date and excludes booked and started slots', async () => {
+test('TC-BOOK-03 accepts a slot one millisecond before it starts', async () => {
+  const upcoming = await slot('2030-01-01T15:00:00+07:00');
+  // The sessions were created at 14:00 with SESSION_TTL_MINUTES=60, so they are still valid here.
+  current = upcoming.startAt.getTime() - 1;
+  try {
+    await book(upcoming.id).expect(201);
+  } finally {
+    current = now;
+  }
+  expect(await database.booking.count({ where: { slotId: upcoming.id, studentId: users[0] } })).toBe(1);
+});
+
+test('TC-SLOT-02 excludes started slots and returns an empty list for a day without slots', async () => {
+  const pastHour = await slot('2030-01-01T13:00:00+07:00', machines[1]);
+  const startsNow = await slot('2030-01-01T14:00:00+07:00', machines[1]);
+  const nextHour = await slot('2030-01-01T15:00:00+07:00', machines[1]);
+  const listed = await availableOnOwnMachines('2030-01-01');
+  expect(listed).toEqual([nextHour.id]);
+  expect(listed).not.toContain(pastHour.id);
+  expect(listed).not.toContain(startsNow.id);
+  // No test fixture opens a slot on 2031-01-08, so the whole response must be empty.
+  const emptyDay = await request(app).get('/api/v1/slots?date=2031-01-08').set('Cookie', cookies[0]).expect(200);
+  expect(emptyDay.body).toEqual([]);
+});
+
+test('TC-SLOT-02 filters availability by Bangkok date and excludes booked slots', async () => {
   const free = await slot('2031-01-05T00:00:00+07:00');
   const occupied = await slot('2031-01-05T23:00:00+07:00');
   await book(occupied.id).expect(201);
