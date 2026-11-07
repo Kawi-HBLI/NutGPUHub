@@ -1,6 +1,6 @@
 # Sprint 1 Feature Contracts
 
-See the [system design](../../system-sds.md) for shared rules and the [test specification](test-specification.md) for fixtures and expected results. Test results and reviewer evidence are recorded against the implemented release.
+See the [system design](../../system-sds.md) for shared rules, the [test specification](test-specification.md) for fixtures and expected results, and the [verification record](verification.md) for execution results and coverage status.
 
 ## F-01: Sign in and sign out
 
@@ -69,7 +69,7 @@ The student chooses a date, selects an available slot, and submits one booking r
 |---|---|
 | `GET /api/v1/slots?date=YYYY-MM-DD` | Return `200` with the future, unbooked slots for the selected Bangkok calendar date, ordered by start time. Each entry contains `slotId`, `machineId`, `machineCode`, `startAt`, and `endAt`. Return an empty list when appropriate and `400` with `INVALID_DATE` for a missing or invalid date. |
 | `POST /api/v1/bookings` | Accept `slotId` as a positive integer. Return `201` with `bookingId` and `slotId`, and a `Location` header for `/api/v1/bookings/{bookingId}`. Return `400` with `INVALID_SLOT_ID` for an invalid ID and `404` with `SLOT_NOT_FOUND` for an unknown slot. Return `409` with `SLOT_ALREADY_STARTED`, `SLOT_ALREADY_BOOKED`, or `STUDENT_TIME_CONFLICT` when the student already holds another machine at that hour. |
-| `GET /api/v1/bookings/{bookingId}` | Return `200` with the student's own booking ID, slot ID, machine code, and slot times. Return `404` with `BOOKING_NOT_FOUND` for an invalid or unknown booking ID or one owned by another student. |
+| `GET /api/v1/bookings/{bookingId}` | Return `200` with the student's own `bookingId`, `slotId`, `machineId`, `machineCode`, `startAt`, and `endAt`. Return `404` with `BOOKING_NOT_FOUND` for an invalid or unknown booking ID or one owned by another student. |
 
 Each F-03 route requires a valid session (`401 AUTH_REQUIRED`) and the student role (`403 FORBIDDEN`). These guards apply to the matching routes, so unrelated API paths can reach the API's `404 NOT_FOUND` handler.
 
@@ -106,6 +106,10 @@ The F-02 operator guards are now attached per route, like the F-03 student guard
 - **AC-15:** A student can retrieve a confirmed booking after an application restart using the same database.
 - **AC-18:** The My Bookings list contains only the signed-in student's bookings.
 
+## Requirement refinement note
+
+The original FR, AC and test IDs remain valid. The SRS adds dotted subrequirements for the same behavior; [traceability](../../traceability.md#subrequirement-coverage) maps them back to these contracts. This post-implementation clarification is versioned separately from the contracts committed before F-01 to F-04 and preserves accepted API behavior.
+
 ## Shared access and Product Definition of Done
 
 Protected routes return `401` for a missing or invalid session and `403` for the wrong role. The API checks resource ownership or assignment after validating the session and role.
@@ -130,3 +134,5 @@ The Sprint 1 release also requires the integrated browser journeys, local setup 
 | 0.3 | 2026-11-06 | Thawat Boonsuk | F-02 implemented: recorded the machine response fields, the error codes for each F-02 route, and the database check for whole-hour starts. |
 | 0.4 | 2026-11-07 | Tanadet Nuchaikaew | F-03 review: recorded input, missing-resource and access error codes, and clarified that student guards apply only to matching F-03 routes. |
 | 0.5 | 2026-11-07 | Thawat Boonsuk | F-04 implemented: recorded the My Bookings and schedule booking fields, and moved the F-02 operator guards to individual routes. |
+| 0.6 | 2026-11-07 | Tanadet Nuchaikaew | Clarified F-03 booking detail fields and linked the post-F-04 requirement refinement and execution evidence without renumbering AC. |
+| 0.7 | 2026-11-07 | Tanadet Nuchaikaew | PR #21 review: consolidated the execution-record reference in the introduction. |

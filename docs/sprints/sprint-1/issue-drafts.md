@@ -1,5 +1,7 @@
 # Sprint 1 GitHub Issue Drafts
 
+These original implementation drafts are retained for history. Issues #1 to #4 were accepted through PRs #7 to #10. Current supporting work, labels, milestones and later-sprint Backlog are listed in [work tracking](../../work-tracking.md). DOC-01 (#11), QA-01 (#16) and REL-01 (#17) track the remaining refinement, verification and delivery separately.
+
 Open each issue with its section from the [feature contracts](feature-contracts.md) and the applicable checks from the [test specification](test-specification.md). Work through the issues in order. Move each from `Backlog` to `Specified` when its contract is ready and to `Started` when implementation begins. Create the feature branch from `sprint-1-staging`. Link the PR with `Closes #<issue-number>` and move the issue to `PR Review`. If changes are requested, move to `Fixing`, update the same branch, and return to `PR Review`. The teammate formally approves and merges the PR. After acceptance, close the issue manually if the staging merge leaves it open, then move it to `Done`.
 
 For the report, retain the issue and PR links, branch, author, reviewer, and a specific review finding or reason for approval. Connect these records to the tested release.
@@ -42,3 +44,4 @@ Add **My Bookings** for the signed-in student. Extend the existing assigned-mach
 |---|---|---|---|
 | 0.1 | 2026-11-06 | Tanadet Nuchaikaew | Initial issue drafts. |
 | 0.2 | 2026-11-06 | Thawat Boonsuk | Named the `sprint-1-staging` branch and added the new AC and test IDs to each issue. |
+| 0.3 | 2026-11-07 | Tanadet Nuchaikaew | Preserved original implementation drafts and linked the current supporting-work map after F-04 acceptance. |
