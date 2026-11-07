@@ -1,6 +1,6 @@
 # Sprint 1 Software Test Specification
 
-This table defines planned scenarios. Implemented tests and historical run results are listed separately in [verification](verification.md). Some IDs span several test files; passing one test with an ID does not prove every scenario in that row. Record the tested commit, command and actual outcome for the submitted release.
+This table defines the test scenarios. See the [verification record](verification.md) for execution results and coverage status.
 
 ## Common fixtures
 
@@ -39,3 +39,4 @@ For the booking exclusivity rules, retain the failing `TC-BOOK-02` and `TC-BOOK-
 | 0.1 | 2026-11-06 | Tanadet Nuchaikaew | Initial test specification. |
 | 0.2 | 2026-11-06 | Thawat Boonsuk | Added `TC-AUTH-04`, `TC-VALID-01`, `TC-BOOK-04` and `TC-E2E-02`. `TC-AUTH-03` now tests the one-hour boundary. Operator B is assigned to `GPU-02`. |
 | 0.3 | 2026-11-07 | Tanadet Nuchaikaew | Separated planned scenarios from executed coverage, identified API time-boundary checks and the real-process persistence command. |
+| 0.4 | 2026-11-07 | Tanadet Nuchaikaew | PR #21 review: shortened the introduction to link the central verification record. |

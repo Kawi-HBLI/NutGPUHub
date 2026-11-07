@@ -1,6 +1,6 @@
 # Deliverable 1 Preparation Checklist
 
-This is a preparation guide for REL-01 (#17), based on the Deliverable 1 sheet. It is not the submitted PDF or a statement that submission is complete. Deadline: November 8, 2026, 23:59 Asia/Bangkok.
+Preparation guide for REL-01 (#17), based on the Deliverable 1 sheet. Deadline: November 8, 2026, 23:59 Asia/Bangkok. See the [verification record](verification.md) for execution results and coverage status.
 
 ## Parts A-F
 
@@ -11,7 +11,7 @@ This is a preparation guide for REL-01 (#17), based on the Deliverable 1 sheet. 
 | C: System SDS (15 points) | `docs/system-sds.md` | Include architecture, data diagram/constraints, UI/API, role matrix, sessions/configuration and planned deployment. |
 | D: Three-sprint plan (5 points) | `docs/sprints/plan.md` | Include scope, dependencies, ownership, checkpoint outcomes and the November 29 Sprint 3 progress requirement. |
 | E: Engineering contracts (20 points) | `feature-contracts.md`, `test-specification.md` | Include every Sprint 1 feature design, AC, STS, DoD and visible version history directly in the PDF. |
-| F: Working increment and verification (20 points) | `verification.md`, actual release output, demonstrations and GitHub evidence | Include actual final-candidate results and limitations; the verification map alone is not final-release evidence. |
+| F: Working increment and verification (20 points) | `verification.md`, actual release output, demonstrations and GitHub evidence | Include versioned results, limitations and the contribution identity reference from `docs/work-tracking.md`. |
 
 Paths without a `docs/` prefix above refer to this Sprint 1 directory. Keep the content self-contained; external links support targeted checking but do not replace embedded engineering documents.
 
@@ -25,7 +25,7 @@ Paths without a `docs/` prefix above refer to this Sprint 1 directory. Keep the 
 - [ ] Embed an AC-to-planned-test-to-actual-test/result table and two short real test excerpts: a domain rule and an access restriction.
 - [ ] Embed genuine TDD red/green evidence with the relevant versions for TC-BOOK-02 and TC-BOOK-04.
 - [ ] Select two completed Issue/PR/review chains, branch names, author/reviewer, substantive feedback, contract-before-implementation history, final board state and integration into main.
-- [ ] Confirm both students' actual contributions. Identify pair work only if it occurred, and include a brief truthful AI-use declaration.
+- [ ] Confirm both students' actual contributions and include the [account/display-name reference](../../work-tracking.md#contribution-identity-reference-for-part-f) once in the Part F contribution table. Identify pair work only if it occurred, and include a brief truthful AI-use declaration.
 
 ## Document assembly and private submission
 
@@ -43,3 +43,4 @@ Docker, completed CI/CD, a cloud URL and a separate video are not required for D
 | Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1 | 2026-11-07 | Tanadet Nuchaikaew | Added the actual A-F content map and outstanding release/PDF gates without claiming completion. |
+| 0.2 | 2026-11-07 | Tanadet Nuchaikaew | PR #21 review: linked the central execution record and the account/display-name reference for Part F. |

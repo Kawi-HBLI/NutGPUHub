@@ -19,7 +19,7 @@ Feature branches start from `sprint-1-staging`. Teammate-reviewed PRs merge into
 
 ## Sprint 1 review package
 
-F-01 to F-04 have reviewed implementations in `sprint-1-staging`. The post-F-04 document refinement is reviewed separately in DOC-01 (#11). Requirements and test plans describe the intended behavior; the verification record identifies actual executed versions and outstanding coverage. The accepted main release and PDF submission remain separate gates.
+F-01 to F-04 have reviewed implementations in `sprint-1-staging`. DOC-01 (#11) reviews the post-F-04 document refinement. See the [verification record](docs/sprints/sprint-1/verification.md) for execution results and coverage status.
 
 | Document | Review focus |
 |---|---|
@@ -81,4 +81,4 @@ npm run verify:restart
 
 Students see their saved reservations under **My bookings**, and operators see who booked each slot in the machine schedule.
 
-Keep real run output, screenshots and TDD evidence locally under `evidence/<feature>/`; Git excludes that directory. Copy the selected evidence into the private submission PDF. Record the exact tested commit and distinguish planned scenarios from executed assertions, especially when one test ID covers several files.
+Keep real run output, screenshots and TDD evidence locally under `evidence/<feature>/`; Git excludes that directory. Copy the selected evidence into the private submission PDF and follow the [verification record](docs/sprints/sprint-1/verification.md).

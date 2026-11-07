@@ -32,9 +32,9 @@ The rows below distinguish implemented assertions from the fuller planned scenar
 | AC-08 | TC-ACCESS-01 | `tests/slots.test.ts`: student slot creation rejected without changes to the tested schedule. | Passed. |
 | AC-09 | TC-BOOK-01, TC-ACCESS-02 | `tests/bookings.test.ts` and `tests/view-bookings.test.ts`: another owner's detail returns 404 with no booking data. | Passed. |
 | AC-10 | TC-ACCESS-01, TC-ACCESS-02 | `tests/slots.test.ts` and `tests/view-bookings.test.ts`: unassigned operator cannot open/read the machine schedule. | Passed. |
-| AC-11 | TC-SLOT-02, TC-TIME-01 | `tests/bookings.test.ts`: booked and other-date slots excluded, Bangkok midnight slots included; `tests/time.test.ts`: UTC bounds. | Listed assertions passed; planned started-slot exclusion and valid empty-day availability need explicit checks in #16. |
+| AC-11 | TC-SLOT-02, TC-TIME-01 | `tests/bookings.test.ts`: booked and other-date slots excluded, Bangkok midnight slots included; `tests/time.test.ts`: UTC bounds. | Listed assertions passed. The current TC-SLOT-02 name overclaims started-slot exclusion: its fixtures contain no started slot. In #16, add that fixture/assertion and the valid empty-day case, or narrow the name until those checks exist. |
 | AC-12 | TC-ACCESS-03 | `tests/bookings.test.ts`: anonymous/operator booking requests return 401/403 and leave a valid future slot unbooked; protected reads reject the wrong role. | Passed. |
-| AC-13 | TC-BOOK-03 | `tests/bookings.test.ts`: missing, invalid and unknown IDs return 400/404. | Status checks passed; add scoped no-write assertions after invalid/unknown requests in #16. |
+| AC-13 | TC-BOOK-03 | `tests/bookings.test.ts`: missing, invalid and unknown IDs return 400/404. | Status checks passed. The current TC-BOOK-03 name overclaims "without saving" for invalid/unknown requests: only the started-slot case has a row-count assertion. In #16, add scoped no-write assertions after each rejection or narrow the name to the assertions present. |
 | AC-14 | TC-ACCESS-02, TC-E2E-01 | `tests/view-bookings.test.ts`: assigned schedule includes correct booking/user and null for a free slot; browser operator sees student username. | Passed. |
 | AC-15 | TC-PERSIST-01 | `tests/view-bookings.test.ts`: new app/Prisma instance; `scripts/process-restart-check.ts`: real stop/start with same database and session. | Both checks passed; repeat on deployed release after Lab 5. |
 | AC-16 | TC-AUTH-03 | `tests/auth.test.ts`: 59-minute read succeeds, 60-minute read fails, persisted expiry unchanged. | Passed. |
@@ -61,3 +61,4 @@ The API regression suite also checks unknown-path 404 behavior for anonymous/stu
 | Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1 | 2026-11-07 | Tanadet Nuchaikaew | Recorded reviewed F-04 execution, all Sprint 1 AC mappings and explicit gaps before final release. |
+| 0.2 | 2026-11-07 | Tanadet Nuchaikaew | PR #21 review: identified overclaiming test names and their QA-01 remediation; centralized execution-evidence qualifications here. |

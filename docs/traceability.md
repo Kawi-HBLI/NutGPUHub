@@ -1,6 +1,6 @@
 # Requirements Traceability
 
-Sprint 1 test IDs refer to the [test specification](sprints/sprint-1/test-specification.md). The parent matrix preserves the original baseline mapping. The child matrix below makes each refined behavior traceable. Execution evidence is recorded separately by tested commit; a mapping is not a claim that every planned scenario has passed.
+Sprint 1 test IDs refer to the [test specification](sprints/sprint-1/test-specification.md). The parent matrix preserves the original baseline mapping; the child matrix traces each refined behavior. See the [verification record](sprints/sprint-1/verification.md) for execution results and coverage status.
 
 | Requirement | Feature or responsibility | Sprint | Acceptance criteria and planned verification |
 |---|---|---|---|
@@ -23,7 +23,7 @@ Sprint 1 test IDs refer to the [test specification](sprints/sprint-1/test-specif
 
 ## Subrequirement coverage
 
-Each dotted ID is defined in the SRS and inherits its original parent. Existing AC and test IDs remain stable. Planned later-sprint checks are descriptions, not executed test IDs. See [verification and gaps](sprints/sprint-1/verification.md) for actual test files and outstanding evidence.
+Each dotted ID is defined in the SRS and inherits its original parent. Existing AC and test IDs remain stable. Later-sprint checks describe the verification to specify in their feature contracts.
 
 | Requirement | Feature | Sprint | Criteria | Verification |
 |---|---|---|---|---|
@@ -58,7 +58,7 @@ Each dotted ID is defined in the SRS and inherits its original parent. Existing 
 
 ## Coverage gaps
 
-Every baseline FR, its observable children, BR and NFR has a feature or responsibility and a sprint. Mapping completeness does not remove the execution gaps listed in the verification record. Sprint 2 and Sprint 3 requirements do not yet have acceptance criteria or test IDs. Those are written in each sprint's feature contracts before implementation starts.
+Every baseline FR, its observable children, BR and NFR has a feature or responsibility and a sprint. Sprint 1 execution gaps are listed in the [verification record](sprints/sprint-1/verification.md). Sprint 2 and Sprint 3 requirements do not yet have acceptance criteria or test IDs. Those are written in each sprint's feature contracts before implementation starts.
 
 ## Approved changes
 
@@ -80,3 +80,4 @@ The November 7 post-F-04 refinement keeps FR-01 to FR-09, F-01 to F-08 and AC-01
 | 0.1 | 2026-11-06 | Tanadet Nuchaikaew | Initial traceability matrix. |
 | 0.2 | 2026-11-06 | Thawat Boonsuk | Added BR-04 and NFR-03 rows, new AC and test IDs, and the coverage gap and approved change sections. |
 | 0.3 | 2026-11-07 | Tanadet Nuchaikaew | Added child-requirement traceability and separated planned verification, execution evidence and pending peer review. |
+| 0.4 | 2026-11-07 | Tanadet Nuchaikaew | PR #21 review: replaced repeated evidence qualifications with links to the central verification record. |

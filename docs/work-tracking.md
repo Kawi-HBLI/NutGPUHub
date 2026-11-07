@@ -39,6 +39,15 @@ Create feature branches from the active sprint staging branch. Use `Closes #<iss
 
 The November 7 organization adds work items prospectively for remaining work and annotates original implementation Issues with their real acceptance links. It does not create retrospective specification Issues or claim unperformed pair work. Repository contributions are identified by the actual PR authors and reviewers. Record pair work only when it happened and both students can describe it.
 
+## Contribution identity reference for Part F
+
+| Team member | GitHub login | Display name | Contribution evidence |
+|---|---|---|---|
+| Tanadet Nuchaikaew | [Kawi-HBLI](https://github.com/Kawi-HBLI) | `Tanadet_NU` | F-01/F-03 implementation (PRs #7/#9) and peer reviews of F-02/F-04 (PRs #8/#10). |
+| Thawat Boonsuk | [Chessuker](https://github.com/Chessuker) | `Chessuker` | F-02/F-04 implementation (PRs #8/#10) and peer reviews of F-01/F-03 (PRs #7/#9). |
+
+`Tanadet_NU` is the profile display name of the `Kawi-HBLI` account, not another account or team member. The PR #8 merge event links to that same `Kawi-HBLI` profile. Include this identity reference once in the Part F contribution table so screenshots, commit authors and review history are read consistently. The profile and merge-event link were checked on November 7, 2026.
+
 ## Checkpoints
 
 | Milestone | Due date (Asia/Bangkok) | Required outcome |
@@ -52,3 +61,4 @@ The November 7 organization adds work items prospectively for remaining work and
 | Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1 | 2026-11-07 | Tanadet Nuchaikaew | Added explicit work categories, Issue/dependency map and real acceptance versus release gates. |
+| 0.2 | 2026-11-07 | Tanadet Nuchaikaew | PR #21 review: added the verified GitHub login/display-name mapping for the Part F contribution table. |

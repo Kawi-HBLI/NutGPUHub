@@ -24,7 +24,7 @@
 | F-07 | FR-08.1 to FR-08.2 | Sprint 2 Backlog; contract must handle competing closure/booking requests. |
 | F-08 | FR-09.1 to FR-09.2 | Sprint 3 Backlog; resolve report predicates Q-03 before implementation. |
 
-F-02 supplies the schedule; F-04 adds its reservation details. Feature completion in staging is distinct from the accepted main release and the submission evidence. UI-01 (#6), integrated acceptance evidence, release preparation and documentation are supporting work items; they do not introduce new product feature IDs. See [work tracking](work-tracking.md).
+F-02 supplies the schedule; F-04 adds its reservation details. UI-01 (#6), integrated acceptance evidence, release preparation and documentation are supporting work items; they do not introduce new product feature IDs. See [work tracking](work-tracking.md) and the [verification record](sprints/sprint-1/verification.md).
 
 See the [requirements mapping](traceability.md), [sprint outcomes](sprints/plan.md), and [Sprint 1 feature contracts](sprints/sprint-1/feature-contracts.md).
 
@@ -35,3 +35,4 @@ See the [requirements mapping](traceability.md), [sprint outcomes](sprints/plan.
 | 0.1 | 2026-11-06 | Tanadet Nuchaikaew | Initial feature inventory. |
 | 0.2 | 2026-11-06 | Thawat Boonsuk | Added the Requirements column. Added BR-04 to F-03, F-05 and F-06, and NFR-03 to F-01. |
 | 0.3 | 2026-11-07 | Tanadet Nuchaikaew | Added refined requirement ranges and distinguished staging implementation, future Backlog and supporting delivery work. |
+| 0.4 | 2026-11-07 | Tanadet Nuchaikaew | PR #21 review: linked the central verification record instead of repeating its evidence qualifications. |

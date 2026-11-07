@@ -63,6 +63,7 @@ Sign-in verifies an argon2id password hash and creates an opaque server-side ses
 | `HOST` | Optional bind address; defaults to loopback. Set appropriately for the container in Lab 5. | Not set in `.env.example`. |
 | `PORT` | HTTP port. Cloud Run sets it at runtime. | `3000` |
 | `APP_ORIGIN` | Allowed origin for requests that change data. | `http://localhost:5173` |
+| `PUBLIC_ORIGIN` | Legacy fallback used only when `APP_ORIGIN` is unset or empty. If both are unset or empty, the origin defaults to `http://localhost:5173`. Prefer `APP_ORIGIN` for new configuration. | Not set in `.env.example`. |
 | `SESSION_TTL_MINUTES` | Fixed Sprint 1 lifetime. Omit it or set exactly `60`; another value fails startup. Activity does not renew it. | `60` |
 | `COOKIE_SECURE` | Adds `Secure` to the session cookie. `true` when served over HTTPS. | `false` |
 
@@ -93,3 +94,4 @@ Planned F-05/F-06 operations will use transactions to change confirmed state and
 | 0.1 | 2026-11-06 | Tanadet Nuchaikaew | Initial system design. |
 | 0.2 | 2026-11-06 | Thawat Boonsuk | Added the data diagram, BR-04 constraint, injected clock, Sprint 2 partial index plan, argon2id and one-hour sessions, full role matrix, configuration table, and the Cloud Run deployment design. |
 | 0.3 | 2026-11-07 | Tanadet Nuchaikaew | Documented current composite FK and request flow, fixed TTL validation, seed configuration, verification commands and planned state/cardinality changes. |
+| 0.4 | 2026-11-07 | Tanadet Nuchaikaew | PR #21 review: documented the existing PUBLIC_ORIGIN fallback and origin precedence. |

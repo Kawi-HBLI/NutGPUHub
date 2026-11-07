@@ -1,6 +1,6 @@
 # Sprint 1 Feature Contracts
 
-See the [system design](../../system-sds.md) for shared rules and the [test specification](test-specification.md) for fixtures and expected results. Test results and reviewer evidence are recorded against the implemented release.
+See the [system design](../../system-sds.md) for shared rules, the [test specification](test-specification.md) for fixtures and expected results, and the [verification record](verification.md) for execution results and coverage status.
 
 ## F-01: Sign in and sign out
 
@@ -108,7 +108,7 @@ The F-02 operator guards are now attached per route, like the F-03 student guard
 
 ## Requirement refinement note
 
-The original FR, AC and test IDs remain valid. The SRS now adds dotted subrequirements for the same behavior; [traceability](../../traceability.md#subrequirement-coverage) maps them back to these contracts. This post-implementation clarification is versioned separately from the contracts committed before F-01 to F-04. It does not change accepted API behavior. Execution results and remaining verification gaps are recorded in [verification](verification.md).
+The original FR, AC and test IDs remain valid. The SRS adds dotted subrequirements for the same behavior; [traceability](../../traceability.md#subrequirement-coverage) maps them back to these contracts. This post-implementation clarification is versioned separately from the contracts committed before F-01 to F-04 and preserves accepted API behavior.
 
 ## Shared access and Product Definition of Done
 
@@ -135,3 +135,4 @@ The Sprint 1 release also requires the integrated browser journeys, local setup 
 | 0.4 | 2026-11-07 | Tanadet Nuchaikaew | F-03 review: recorded input, missing-resource and access error codes, and clarified that student guards apply only to matching F-03 routes. |
 | 0.5 | 2026-11-07 | Thawat Boonsuk | F-04 implemented: recorded the My Bookings and schedule booking fields, and moved the F-02 operator guards to individual routes. |
 | 0.6 | 2026-11-07 | Tanadet Nuchaikaew | Clarified F-03 booking detail fields and linked the post-F-04 requirement refinement and execution evidence without renumbering AC. |
+| 0.7 | 2026-11-07 | Tanadet Nuchaikaew | PR #21 review: consolidated the execution-record reference in the introduction. |
