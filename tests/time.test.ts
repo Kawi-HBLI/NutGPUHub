@@ -22,3 +22,20 @@ test('TC-TIME-01 accepts whole Bangkok hours and rejects other times', () => {
     expect(parseOffsetTimestamp(invalid)).toBeNull();
   }
 });
+
+test('TC-TIME-01 rejects calendar dates and clock times that do not exist instead of rolling them over', () => {
+  for (const invalid of [
+    '2026-02-30T14:00:00+07:00', // February 30 would roll over to March 2
+    '2026-04-31T14:00:00+07:00',
+    '2026-02-29T14:00:00+07:00', // 2026 is not a leap year
+    '2026-13-01T14:00:00+07:00',
+    '2026-11-08T24:00:00+07:00', // 24:00 would roll over to the next day
+    '2026-11-08T14:60:00+07:00',
+    '2026-11-08T14:00:60+07:00',
+    '2026-11-08T14:00:00+24:00',
+    '2026-11-08T14:00:00+07:60',
+  ]) {
+    expect(parseOffsetTimestamp(invalid), invalid).toBeNull();
+  }
+  expect(parseOffsetTimestamp('2028-02-29T14:00:00+07:00')?.toISOString()).toBe('2028-02-29T07:00:00.000Z');
+});

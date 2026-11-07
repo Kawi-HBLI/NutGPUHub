@@ -133,6 +133,13 @@ test('TC-VALID-01 rejects invalid dates, malformed starts and unknown machines',
     const response = await openSlot(cookies.operatorA, startAt).expect(400);
     expect(response.body.error.code).toBe('INVALID_START_AT');
   }
+  // Impossible dates must be rejected, not rolled over to a later valid day (2030-02-30 would become 2030-03-02).
+  for (const startAt of ['2030-02-30T14:00:00+07:00', '2030-01-05T24:00:00+07:00']) {
+    const response = await openSlot(cookies.operatorA, startAt).expect(400);
+    expect(response.body.error.code).toBe('INVALID_START_AT');
+  }
+  expect(await slotCount('2030-03-02T00:00:00+07:00', '2030-03-03T00:00:00+07:00')).toBe(0);
+  expect(await slotCount('2030-01-06T00:00:00+07:00', '2030-01-07T00:00:00+07:00')).toBe(0);
   for (const id of [999_999_999, 'abc']) {
     const unknownSchedule = await schedule(cookies.operatorA, '2030-01-02', id).expect(404);
     const unknownCreate = await openSlot(cookies.operatorA, '2030-01-05T10:00:00+07:00', id).expect(404);
