@@ -20,14 +20,16 @@ erDiagram
 | User | ID, unique username, argon2id password hash, and `student` or `operator` role. |
 | GPU machine | ID, unique machine code, and assigned operator ID referencing a user. |
 | Slot | ID, machine ID, and `startAt`. Machine ID and start time form a unique pair. Derive `endAt` by adding one hour. |
-| Booking | ID, slot ID, student ID, `slotStartAt`, and creation timestamp. `slotStartAt` is copied from the slot when the booking is created. The slot ID is unique (BR-01), and the pair of student ID and `slotStartAt` is unique (BR-04). |
+| Booking | ID, slot ID, student ID, `slotStartAt`, and creation timestamp. `slotStartAt` is copied from the slot when the booking is created. A composite foreign key `(slotId, slotStartAt)` references the slot `(id, startAt)` so the copied timestamp cannot drift. The slot ID is unique (BR-01), and the pair of student ID and `slotStartAt` is unique (BR-04). |
 | Session | ID, user ID, unique token hash, and expiry timestamp. |
 
 Store timestamps in UTC. Interpret calendar dates and validate hour boundaries in `Asia/Bangkok`. Treat the end of a slot as the start of the next possible slot. The API checks the server clock before opening or booking a slot. Database uniqueness resolves competing writes. A duplicate booking for the same slot is translated to `SLOT_ALREADY_BOOKED`, and a second booking by the same student for the same hour is translated to `STUDENT_TIME_CONFLICT`.
 
 The API reads the current time through an injected clock. Production uses the system clock. Tests pass a fixed clock so that slot start checks and session expiry can be tested at exact boundaries.
 
-**Sprint 2 change to bookings.** Cancellation history adds a `status` column (`confirmed` or `cancelled`) and a cancellation timestamp. The two unique constraints then apply only to confirmed bookings, so they become partial unique indexes (`WHERE status = 'confirmed'`). Prisma's schema language cannot declare partial indexes, so this migration is written as raw SQL inside a versioned Prisma migration.
+The diagram shows the current Sprint 1 cardinality. Slots have no stored open/closed state, and bookings have no cancellation status yet. In Sprint 2, retaining historical cancelled bookings changes the slot-to-booking cardinality to one-to-many, while confirmed reservations remain exclusive. The record/history representation must be reviewed in F-05/F-06 before changing the schema.
+
+**Planned Sprint 2 change to bookings.** Cancellation history adds a `status` column (`confirmed` or `cancelled`) and a cancellation timestamp. The two unique constraints then apply only to confirmed bookings, so they become partial unique indexes (`WHERE status = 'confirmed'`). Prisma's schema language cannot declare partial indexes, so this migration is written as raw SQL inside a versioned Prisma migration.
 
 ## Identity and access
 
@@ -55,11 +57,13 @@ Sign-in verifies an argon2id password hash and creates an opaque server-side ses
 
 | Variable | Purpose | Example in `.env.example` |
 |---|---|---|
-| `DATABASE_URL` | PostgreSQL connection string for the application. | `postgresql://nutgpuhub:change-me@localhost:5432/nutgpuhub` |
-| `TEST_DATABASE_URL` | Separate database used by API and persistence tests. | `postgresql://nutgpuhub:change-me@localhost:5432/nutgpuhub_test` |
+| `DATABASE_URL` | PostgreSQL connection string for the application. | `postgresql://nutgpuhub:password@localhost:5432/nutgpuhub` |
+| `TEST_DATABASE_URL` | Separate database used by API and persistence tests. | `postgresql://nutgpuhub:password@localhost:5432/nutgpuhub_test` |
+| `DEMO_PASSWORD` | Private local seed password; synthetic and supplied by the person running the seed. | `replace-this-local-demo-password` |
+| `HOST` | Optional bind address; defaults to loopback. Set appropriately for the container in Lab 5. | Not set in `.env.example`. |
 | `PORT` | HTTP port. Cloud Run sets it at runtime. | `3000` |
 | `APP_ORIGIN` | Allowed origin for requests that change data. | `http://localhost:5173` |
-| `SESSION_TTL_MINUTES` | Session lifetime. | `60` |
+| `SESSION_TTL_MINUTES` | Fixed Sprint 1 lifetime. Omit it or set exactly `60`; another value fails startup. Activity does not renew it. | `60` |
 | `COOKIE_SECURE` | Adds `Secure` to the session cookie. `true` when served over HTTPS. | `false` |
 
 Only `.env.example` with placeholder values is committed. `.env` is listed in `.gitignore`. The UI bundle receives no secrets; it calls the API on the same origin. Seed passwords are synthetic test values and are not reused anywhere else.
@@ -68,9 +72,19 @@ Only `.env.example` with placeholder values is committed. `.env` is listed in `.
 
 Use versioned Prisma migrations and synthetic seed data: `GPU-01` assigned to operator A, `GPU-02` assigned to operator B, and two students. Operator B is the unassigned operator for `GPU-01` in access tests, and `GPU-02` lets tests book a second machine in the same hour for BR-04. The seed script can be rerun and produces the same data.
 
-Use Vitest for isolated rules, Supertest with a test database for API and persistence checks, and Playwright for the browser journeys. The release setup instructions will identify the actual commands and database migration steps.
+Use Vitest for isolated rules, Supertest with a test database for API and persistence checks, and Playwright for the browser journeys. The README identifies migration, seed and execution commands. `npm test` runs unit/API tests, `npm run test:e2e` runs the browser journeys, and `npm run verify:restart` checks persistence across different Node processes. Tests and system checks use a separate migrated `TEST_DATABASE_URL`. Store local PDF evidence under `evidence/<feature>/`, which Git excludes.
 
 Sprint 1 runs locally. In Lab 5 the UI build and the API are packaged in one Docker image so they share one origin. The image is pushed to Artifact Registry and runs on Cloud Run. Cloud Run containers keep no data between restarts, so the application connects to a persistent managed PostgreSQL database outside the container. `DATABASE_URL` is stored in Secret Manager and exposed to Cloud Run as an environment variable. Migrations run as a release step before the new revision takes traffic.
+
+## Request and data flow
+
+1. The browser restores the current session with `GET /api/v1/auth/me` and opens the student or operator workspace.
+2. For writes, the shared API middleware checks Origin and parses a bounded JSON body. Route-specific guards validate the session and role, followed by resource ownership/assignment and feature input checks.
+3. The booking API reads the slot and server clock, then attempts the database insert. Unique indexes arbitrate competing slot/student-hour writes; the composite foreign key protects the copied slot time.
+4. The API returns the saved ID after a successful insert or a safe error object after rejection. The student UI refreshes availability and My Bookings after a booking attempt. The operator reloads the schedule to retrieve current booking details.
+5. Requests that pass the shared middleware and match no API route fall through to `404 NOT_FOUND`. An invalid Origin or malformed JSON may be rejected earlier with `403` or `400`. Existing unknown-path regression tests exercise GET requests. Known protected routes retain their authentication/role errors.
+
+Planned F-05/F-06 operations will use transactions to change confirmed state and history together. Planned F-07 must serialize closure with competing booking requests. These are design responsibilities for their later contracts, not implemented guarantees of Sprint 1. F-08 reads only authorized machines and must define report predicates before its queries are implemented.
 
 ## Version history
 
@@ -78,3 +92,4 @@ Sprint 1 runs locally. In Lab 5 the UI build and the API are packaged in one Doc
 |---|---|---|---|
 | 0.1 | 2026-11-06 | Tanadet Nuchaikaew | Initial system design. |
 | 0.2 | 2026-11-06 | Thawat Boonsuk | Added the data diagram, BR-04 constraint, injected clock, Sprint 2 partial index plan, argon2id and one-hour sessions, full role matrix, configuration table, and the Cloud Run deployment design. |
+| 0.3 | 2026-11-07 | Tanadet Nuchaikaew | Documented current composite FK and request flow, fixed TTL validation, seed configuration, verification commands and planned state/cardinality changes. |

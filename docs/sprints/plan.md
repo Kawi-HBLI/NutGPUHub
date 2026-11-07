@@ -24,9 +24,35 @@ The [feature inventory](../features.md) gives each feature's dependencies. The [
 
 **Completion on December 13, 2026.** Complete the product baseline, verify the integrated workflows and permissions, have independent users retest affected journeys, and prepare the final deployed release, report, and demonstration video.
 
+## Ownership and dependency checkpoints
+
+| Work | Owner / review | Dependency and exit gate |
+|---|---|---|
+| F-01 and F-03 | Tanadet implements; Thawat reviews. | Accepted PRs #7 and #9, with meaningful auth/concurrency checks. |
+| F-02 and F-04 | Thawat implements; Tanadet reviews. | Accepted PRs #8 and #10, with input/access/persistence checks. |
+| DOC-01 (#11) | Tanadet refines; Thawat reviews. | After F-04; verify the same baseline with stable IDs and honest evidence gaps. |
+| QA-01 (#16) | Tanadet coordinates; peer reviews test changes. | After accepted contracts/implementation; finish declared scenarios and capture final-candidate evidence. Recheck accepted UI-01 changes (#6). |
+| REL-01 (#17) | Thawat coordinates main release/PDF; Tanadet reviews. | After DOC-01/QA-01 and the recorded UI-01 disposition; final main SHA and self-contained A-F PDF. |
+| F-05 -> F-06 | Allocate in Sprint 2 planning; peer review each contract/PR. | F-05 state/history and Q-01 first, then F-06 atomic move and Q-02. |
+| F-07 | Allocate in Sprint 2 planning. | Reviewed closure/booking concurrency design after F-02/F-03 and Sprint 2 state design. |
+| F-08 | Allocate before the November 29 checkpoint. | F-04/F-05/F-07 data, Q-03 report predicates, then a meaningful implemented/tested/deployed progress slice by November 29. |
+
+Track actual board states and milestone dates in [work tracking](../work-tracking.md). New later-sprint Issues remain Backlog until their detailed contracts are reviewed. Lab 5/6/7 are Issues #18/#19/#20; read each lab sheet before turning the outline into concrete implementation tasks.
+
+## Release risks and actions
+
+| Risk | Action / verification gate |
+|---|---|
+| A mapped AC is mistaken for fully executed coverage. | Use the [verification matrix](sprint-1/verification.md), complete #16 gaps and record final-run failures/skips explicitly. |
+| Main/PDF evidence lags behind accepted staging features. | Keep #17 open until reviewed main release and actual private submission are confirmed. |
+| Cancellation history breaks confirmed-only uniqueness. | Review the raw SQL/index migration and concurrency cases before F-05; retain original booking on failed F-06. |
+| Report scope remains ambiguous too late for Deliverable 2. | Resolve Q-03 and specify the F-08 progress slice before November 29. |
+| Screenshots or claims use a different version from the submission. | Record one immutable reference for the demonstration set and disclose any exception; recheck after accepted UI/runtime changes. |
+
 ## Version history
 
 | Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1 | 2026-11-06 | Tanadet Nuchaikaew | Initial three-sprint plan. |
 | 0.2 | 2026-11-06 | Thawat Boonsuk | Placed Labs 5 to 7 in Sprint 2, named Cloud Run, and stated the hardening work in Sprint 3. |
+| 0.3 | 2026-11-07 | Tanadet Nuchaikaew | Added real ownership, dependency/exit gates, work links and release risks after F-04 without expanding feature scope. |

@@ -19,7 +19,7 @@ Feature branches start from `sprint-1-staging`. Teammate-reviewed PRs merge into
 
 ## Sprint 1 review package
 
-These documents are drafts for team review. The test cases describe planned checks. Execution results belong to the release evidence once the application runs.
+F-01 to F-04 have reviewed implementations in `sprint-1-staging`. The post-F-04 document refinement is reviewed separately in DOC-01 (#11). Requirements and test plans describe the intended behavior; the verification record identifies actual executed versions and outstanding coverage. The accepted main release and PDF submission remain separate gates.
 
 | Document | Review focus |
 |---|---|
@@ -31,8 +31,13 @@ These documents are drafts for team review. The test cases describe planned chec
 | [Sprint 1 feature contracts](docs/sprints/sprint-1/feature-contracts.md) | Screens, API behavior, acceptance criteria, and definition of done |
 | [Sprint 1 test specification](docs/sprints/sprint-1/test-specification.md) | Preconditions, actions, and expected results |
 | [Sprint 1 issue drafts](docs/sprints/sprint-1/issue-drafts.md) | Work order, verification, and PR review handoff |
+| [Work tracking](docs/work-tracking.md) | Issue links, labels, milestones, ownership and dependencies |
+| [Sprint 1 verification](docs/sprints/sprint-1/verification.md) | AC-to-actual-test mapping, tested commits and explicit gaps |
+| [Deliverable 1 checklist](docs/sprints/sprint-1/submission-checklist.md) | Complete A-F content, release evidence and private PDF submission gates |
 
-## Run the sign-in feature locally
+Use the [project board](https://github.com/users/Kawi-HBLI/projects/6), [Issues](https://github.com/Kawi-HBLI/NutGPUHub/issues) and [milestones](https://github.com/Kawi-HBLI/NutGPUHub/milestones) to follow current work. F-05 to F-08 remain planned for later sprints. The original nine FR IDs stay stable; dotted subrequirements explain their observable behavior without adding new features.
+
+## Run Sprint 1 locally
 
 Use Node.js 24 and PostgreSQL. Create separate development and test databases and give the configured database user access to each. From the repository root, copy `.env.example` to `.env`, update both database URLs, and set a private `DEMO_PASSWORD` for the prepared accounts.
 
@@ -52,7 +57,7 @@ To serve the built UI and API from one local address, run `npm run build`, set `
 
 If you seeded demo accounts with the earlier scrypt draft, run `npm run db:seed` again with your private `DEMO_PASSWORD`. This updates the demo credentials to Argon2id and ends existing sessions for those accounts.
 
-To run the authentication suite, migrate the test database once in a separate PowerShell window. Set the temporary `DATABASE_URL` to the same value as `TEST_DATABASE_URL` in `.env`, then clear it so the app and tests use their respective databases.
+To run the unit/API suite, migrate the test database once in a separate PowerShell window. Set the temporary `DATABASE_URL` to the same value as `TEST_DATABASE_URL` in `.env`, then clear it so the app and tests use their respective databases.
 
 ```powershell
 $env:DATABASE_URL = '<test PostgreSQL URL>'
@@ -75,3 +80,5 @@ npm run verify:restart
 ```
 
 Students see their saved reservations under **My bookings**, and operators see who booked each slot in the machine schedule.
+
+Keep real run output, screenshots and TDD evidence locally under `evidence/<feature>/`; Git excludes that directory. Copy the selected evidence into the private submission PDF. Record the exact tested commit and distinguish planned scenarios from executed assertions, especially when one test ID covers several files.

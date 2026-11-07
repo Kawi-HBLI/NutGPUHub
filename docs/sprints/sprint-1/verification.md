@@ -1,0 +1,63 @@
+# Sprint 1 Verification Record
+
+## Tested versions and evidence boundaries
+
+F-01 to F-04 were accepted through PRs [#7](https://github.com/Kawi-HBLI/NutGPUHub/pull/7), [#8](https://github.com/Kawi-HBLI/NutGPUHub/pull/8), [#9](https://github.com/Kawi-HBLI/NutGPUHub/pull/9) and [#10](https://github.com/Kawi-HBLI/NutGPUHub/pull/10). The accepted staging integration is `08e9aa40a50e0afb779b2248c04677b40f6697b5`.
+
+The latest independent execution recorded here was on `fc278e1ee5c712f93cb08f57bdbf613da2fbcd01`, the reviewed F-04 head, on November 7, 2026. Its runtime/test tree matches staging integration `08e9aa4`. This document refinement changes documentation only. These results are historical evidence, not execution on a future main release. QA-01 (#16) must identify and verify the actual submitted candidate; REL-01 (#17) records the immutable main release.
+
+| Command | Actual result at fc278e1 | Evidence |
+|---|---|---|
+| `npm test` | 31 passed, 0 failed, 0 skipped; 5 files | `time.test.ts` 3, `slots.test.ts` 6, `bookings.test.ts` 11, `auth.test.ts` 6, `view-bookings.test.ts` 5. |
+| `npm run build` | Passed | Both TypeScript configurations and Vite production build; also run by the system checks below. |
+| `npm run test:e2e` | 2 passed, 0 failed, 0 skipped | `e2e/bookings.spec.ts`, TC-E2E-01 and TC-E2E-02, using the committed config and Chromium Headless Shell revision 1217 installed by Playwright 1.59.1. |
+| `npm run verify:restart` | Passed | `scripts/process-restart-check.ts`: booking created, first Node process stopped and port closed, another process started, original session retrieves identical detail and My Bookings. |
+| `npm audit --json` | No Playwright advisory reported | Targeted confirmation of PR #10 dependency correction. This is not a claim that the whole dependency tree has zero advisories. |
+
+The local reviewer logs for this run are retained under `evidence/reviewer-f04-rerun/`. F-03 rule red/green logs are under `evidence/f03/`, summarized in [F-03 verification](f03-verification.md). Evidence directories are excluded from Git and must be copied into the private PDF preparation materials. They are not public download links.
+
+## AC-to-test mapping
+
+The rows below distinguish implemented assertions from the fuller planned scenarios in the [STS](test-specification.md). A historical pass describes the listed assertion at the version above. It does not certify every future release or every input combination.
+
+| AC | Planned test ID | Actual file / assertion | Historical coverage |
+|---|---|---|---|
+| AC-01 | TC-BOOK-01, TC-E2E-01 | `tests/bookings.test.ts`: saved ID, Location and owner retrieval; `e2e/bookings.spec.ts`: book then reload My Bookings. | Passed. |
+| AC-02 | TC-BOOK-02, TC-E2E-02 | `tests/bookings.test.ts`: concurrent students get one 201 and one 409, one row and correct owner; browser stale-availability conflict. | Passed. |
+| AC-03 | TC-BOOK-03 | `tests/bookings.test.ts`: exactly-at-start request returns 409 and no booking for that slot. | At-start passed; add explicit after-start and just-before-start booking checks in #16. |
+| AC-04 | TC-SLOT-01 | `tests/slots.test.ts`: consecutive 14:00/15:00 slots, duplicate rejected, two stored slots. | Passed. |
+| AC-05 | TC-SLOT-01, TC-TIME-01 | `tests/slots.test.ts` and `tests/time.test.ts`: off-hour rejection and whole-hour/offset parsing. | Passed. |
+| AC-06 | TC-AUTH-01 | `tests/auth.test.ts`: both roles, generic wrong-password/unknown-user error and unchanged session count. | Passed. |
+| AC-07 | TC-AUTH-02, TC-E2E-02 | `tests/auth.test.ts`: current account, sign-out, cookie replay 401; browser returns to sign-in. | Passed. |
+| AC-08 | TC-ACCESS-01 | `tests/slots.test.ts`: student slot creation rejected without changes to the tested schedule. | Passed. |
+| AC-09 | TC-BOOK-01, TC-ACCESS-02 | `tests/bookings.test.ts` and `tests/view-bookings.test.ts`: another owner's detail returns 404 with no booking data. | Passed. |
+| AC-10 | TC-ACCESS-01, TC-ACCESS-02 | `tests/slots.test.ts` and `tests/view-bookings.test.ts`: unassigned operator cannot open/read the machine schedule. | Passed. |
+| AC-11 | TC-SLOT-02, TC-TIME-01 | `tests/bookings.test.ts`: booked and other-date slots excluded, Bangkok midnight slots included; `tests/time.test.ts`: UTC bounds. | Listed assertions passed; planned started-slot exclusion and valid empty-day availability need explicit checks in #16. |
+| AC-12 | TC-ACCESS-03 | `tests/bookings.test.ts`: anonymous/operator booking requests return 401/403 and leave a valid future slot unbooked; protected reads reject the wrong role. | Passed. |
+| AC-13 | TC-BOOK-03 | `tests/bookings.test.ts`: missing, invalid and unknown IDs return 400/404. | Status checks passed; add scoped no-write assertions after invalid/unknown requests in #16. |
+| AC-14 | TC-ACCESS-02, TC-E2E-01 | `tests/view-bookings.test.ts`: assigned schedule includes correct booking/user and null for a free slot; browser operator sees student username. | Passed. |
+| AC-15 | TC-PERSIST-01 | `tests/view-bookings.test.ts`: new app/Prisma instance; `scripts/process-restart-check.ts`: real stop/start with same database and session. | Both checks passed; repeat on deployed release after Lab 5. |
+| AC-16 | TC-AUTH-03 | `tests/auth.test.ts`: 59-minute read succeeds, 60-minute read fails, persisted expiry unchanged. | Passed. |
+| AC-17 | TC-SLOT-03 | `tests/slots.test.ts`: past and exactly-current starts fail; future hour succeeds. | Passed. |
+| AC-18 | TC-ACCESS-02 | `tests/view-bookings.test.ts`: student list excludes the other student's booking; separate empty-list test. | Ownership/empty checks passed; multiple-own-booking ordering is implemented but needs a direct assertion in #16. |
+| AC-19 | TC-BOOK-04 | `tests/bookings.test.ts`: sequential and concurrent same-student same-hour conflicts; another hour succeeds. | Passed. |
+| AC-20 | TC-VALID-01 | `tests/auth.test.ts`: malformed login returns 400 and session count is unchanged. | Passed. |
+| AC-21 | TC-VALID-01 | `tests/slots.test.ts`: invalid/missing dates, malformed starts and unknown machine requests rejected. | Passed for the listed fixtures. |
+| AC-22 | TC-VALID-01, TC-SLOT-02 | `tests/bookings.test.ts`: missing/impossible availability dates rejected; `tests/time.test.ts`: malformed calendar dates rejected. | Passed; availability assertions are named TC-SLOT-02 in the actual file. |
+| AC-23 | TC-AUTH-04 | `tests/auth.test.ts`: each prepared account has a distinct Argon2id hash, no plaintext match, and password verification succeeds. | Passed. |
+
+The API regression suite also checks unknown-path 404 behavior for anonymous/student/operator requests. These checks came from PR #9 review feedback, followed by the matching machine-router correction in PR #10.
+
+## Required release follow-up
+
+- Complete the explicit coverage gaps above in #16 and report actual failures/skips rather than marking the full STS passed from its test ID alone.
+- Capture release demonstrations with role, starting state, steps, expected/actual result and AC IDs. API/DB output must accompany the forbidden-operation demonstration.
+- Rerun after accepted UI changes (#6); retain a clean-checkout setup record and final candidate SHA.
+- Select two genuine completed Issue/PR chains and substantive peer reviews for Part F. Preserve original contract-before-code commits and actual TDD logs.
+- Verify the accepted main release, immutable reference, PDF page navigation, contributions and limitations in #17. Sprint 1 is not submitted merely because the staging features passed.
+
+## Version history
+
+| Version | Date | Author | Change |
+|---|---|---|---|
+| 0.1 | 2026-11-07 | Tanadet Nuchaikaew | Recorded reviewed F-04 execution, all Sprint 1 AC mappings and explicit gaps before final release. |
