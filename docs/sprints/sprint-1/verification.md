@@ -32,7 +32,7 @@ The rows below distinguish implemented assertions from the fuller planned scenar
 | AC-08 | TC-ACCESS-01 | `tests/slots.test.ts`: student slot creation rejected without changes to the tested schedule. | Passed. |
 | AC-09 | TC-BOOK-01, TC-ACCESS-02 | `tests/bookings.test.ts` and `tests/view-bookings.test.ts`: another owner's detail returns 404 with no booking data. | Passed. |
 | AC-10 | TC-ACCESS-01, TC-ACCESS-02 | `tests/slots.test.ts` and `tests/view-bookings.test.ts`: unassigned operator cannot open/read the machine schedule. | Passed. |
-| AC-11 | TC-SLOT-02, TC-TIME-01 | `tests/bookings.test.ts`: booked and other-date slots excluded, Bangkok midnight slots included; a separate test excludes past-hour and starts-now slots, keeps the next hour, and returns `200 []` for a valid day without slots; `tests/time.test.ts`: UTC bounds. | Passed on the QA-01 branch. The original test is renamed to the assertions it makes (date and booked filtering). |
+| AC-11 | TC-SLOT-02, TC-TIME-01 | `tests/bookings.test.ts`: booked and other-date slots excluded, Bangkok midnight slots included; a separate test excludes past-hour and starts-now slots and keeps the next hour; `tests/availability-empty-day.test.ts`: a valid day without slots returns `200 []` from a freshly migrated PostgreSQL schema that no other test writes to, then lists a slot once one is added; `tests/time.test.ts`: UTC bounds. | Passed on the QA-01 branch. The original test is renamed to the assertions it makes (date and booked filtering). |
 | AC-12 | TC-ACCESS-03 | `tests/bookings.test.ts`: anonymous/operator booking requests return 401/403 and leave a valid future slot unbooked; protected reads reject the wrong role. | Passed. |
 | AC-13 | TC-BOOK-03 | `tests/bookings.test.ts`: missing, invalid and unknown IDs return 400/404, and the suite's booking count is checked unchanged after every rejected request. | Passed on the QA-01 branch. |
 | AC-14 | TC-ACCESS-02, TC-E2E-01 | `tests/view-bookings.test.ts`: assigned schedule includes correct booking/user and null for a free slot; browser operator sees student username. | Passed. |
@@ -50,11 +50,11 @@ The API regression suite also checks unknown-path 404 behavior for anonymous/stu
 
 ## QA-01 coverage additions
 
-The QA-01 branch `test/qa-01-coverage` (base `ded957b`) closes the four gaps above with test changes only. Runtime code is unchanged. Results on that branch, November 7, 2026:
+The QA-01 branch `test/qa-01-coverage` (base `ded957b`) closes the four gaps above with test changes only. Runtime code is unchanged. Tested commit: `42cdd7675a69bd0ae81428c49eb4e08be14ae4ef`, November 7, 2026. Only documentation differed in the working tree during the run:
 
 | Command | Result |
 |---|---|
-| `npm test` | 34 passed, 0 failed, 0 skipped; 5 files (`bookings.test.ts` 13, `view-bookings.test.ts` 6) |
+| `npm test` | 35 passed, 0 failed, 0 skipped; 6 files (`bookings.test.ts` 13, `view-bookings.test.ts` 6, `availability-empty-day.test.ts` 1) |
 | `npm run build` | Passed |
 | `npm run test:e2e` | 2 passed, 0 failed, 0 skipped |
 | `npm run verify:restart` | Passed |
@@ -68,7 +68,7 @@ The behavior already existed, so these tests passed when added and are not TDD r
 | Booking rejected 1 ms before start | TC-BOOK-03 1 ms test (and the TC-SLOT-02 started-slot test, which expects that slot to be booked) |
 | My Bookings ordered by booking ID instead of slot start | AC-18 ordering test |
 
-The no-write assertions were not mutation-checked. Logs are under `evidence/qa-01/`. These are branch results; the final candidate run is still required.
+The empty-day test runs in its own schema because the shared test database may hold other fixtures' slots on any date (PR #22 review). It still passed after an unrelated slot was inserted on 2031-01-08 in the shared schema; that slot was removed afterwards and no isolated schema was left behind. The no-write assertions were not mutation-checked. Logs are under `evidence/qa-01/`. These results identify the tested commit above, not the final release candidate, which still needs its own run.
 
 ## Required release follow-up
 
@@ -85,3 +85,4 @@ The no-write assertions were not mutation-checked. Logs are under `evidence/qa-0
 | 0.1 | 2026-11-07 | Tanadet Nuchaikaew | Recorded reviewed F-04 execution, all Sprint 1 AC mappings and explicit gaps before final release. |
 | 0.2 | 2026-11-07 | Tanadet Nuchaikaew | PR #21 review: identified overclaiming test names and their QA-01 remediation; centralized execution-evidence qualifications here. |
 | 0.3 | 2026-11-07 | Thawat Boonsuk | QA-01: recorded the added started-slot, empty-day, booking-boundary, no-write and ordering tests with their branch results and mutation checks. |
+| 0.4 | 2026-11-07 | Thawat Boonsuk | PR #22 review: moved the empty-day check to an isolated schema and recorded the exact tested commit. |
