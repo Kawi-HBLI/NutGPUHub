@@ -4,6 +4,7 @@ import { apiRequest, bangkokToday, formatBangkokDate, formatBangkokTime } from '
 type Slot = { slotId: number; machineCode: string; startAt: string; endAt: string };
 type Booking = Slot & { bookingId: number };
 type Slots = { state: 'loading' } | { state: 'error'; message: string } | { state: 'ready'; data: Slot[] };
+type MyBookings = { state: 'loading' } | { state: 'error'; message: string } | { state: 'ready'; data: Booking[] };
 
 export function StudentWorkspace() {
   const [date, setDate] = useState(bangkokToday);
@@ -12,6 +13,16 @@ export function StudentWorkspace() {
   const [pending, setPending] = useState(false);
   const [booking, setBooking] = useState<Booking | null>(null);
   const [notice, setNotice] = useState<{ error: boolean; text: string } | null>(null);
+  const [myBookings, setMyBookings] = useState<MyBookings>({ state: 'loading' });
+
+  // F-04 My Bookings: reloaded after every booking attempt so it always matches the server.
+  useEffect(() => {
+    let active = true;
+    void apiRequest<Booking[]>('/bookings').then(result => {
+      if (active) setMyBookings(result.ok ? { state: 'ready', data: result.data } : { state: 'error', message: result.error.message });
+    });
+    return () => { active = false; };
+  }, [refresh]);
 
   useEffect(() => {
     let active = true;
@@ -70,5 +81,18 @@ export function StudentWorkspace() {
       <p>{booking.machineCode} · {formatBangkokDate(booking.startAt)} · {formatBangkokTime(booking.startAt)}–{formatBangkokTime(booking.endAt)} (Bangkok)</p>
       <a href={`?booking=${booking.bookingId}`}>Open saved booking</a>
     </section>}
+    <section aria-labelledby="my-bookings">
+      <h2 id="my-bookings">My bookings</h2>
+      {myBookings.state === 'loading' && <p>Loading your bookings…</p>}
+      {myBookings.state === 'error' && <p className="error" role="alert">{myBookings.message}</p>}
+      {myBookings.state === 'ready' && myBookings.data.length === 0 && <p>You have no bookings yet.</p>}
+      {myBookings.state === 'ready' && myBookings.data.length > 0 && <ul className="schedule" aria-label="My bookings">
+        {myBookings.data.map(item => <li key={item.bookingId}>
+          <a href={`?booking=${item.bookingId}`}>
+            {item.machineCode} · {formatBangkokDate(item.startAt)} · {formatBangkokTime(item.startAt)}–{formatBangkokTime(item.endAt)}
+          </a>
+        </li>)}
+      </ul>}
+    </section>
   </div>;
 }

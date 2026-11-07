@@ -2,7 +2,10 @@ import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { apiRequest, bangkokToday, formatBangkokTime } from './api';
 
 type Machine = { machineId: number; machineCode: string };
-type Slot = { slotId: number; machineId: number; startAt: string; endAt: string };
+type Slot = {
+  slotId: number; machineId: number; startAt: string; endAt: string;
+  booking: { bookingId: number; studentUsername: string } | null;
+};
 type Load<T> = { state: 'loading' } | { state: 'error'; message: string } | { state: 'ready'; data: T };
 
 const hours = Array.from({ length: 24 }, (_, hour) => String(hour).padStart(2, '0'));
@@ -88,7 +91,12 @@ export function OperatorWorkspace() {
         {slots.state === 'ready' && slots.data.length > 0 && (
           <ul className="schedule">
             {slots.data.map(slot => (
-              <li key={slot.slotId}>{formatBangkokTime(slot.startAt)}–{formatBangkokTime(slot.endAt)}</li>
+              <li key={slot.slotId}>
+                {formatBangkokTime(slot.startAt)}–{formatBangkokTime(slot.endAt)} ·{' '}
+                {slot.booking
+                  ? <>Booked by <strong>{slot.booking.studentUsername}</strong> (booking #{slot.booking.bookingId})</>
+                  : 'Available'}
+              </li>
             ))}
           </ul>
         )}
