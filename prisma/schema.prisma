@@ -19,6 +19,7 @@ model User {
   role         Role
   sessions     Session[]
   machines     GpuMachine[]
+  bookings     Booking[]
 
   @@map("users")
 }
@@ -39,9 +40,25 @@ model Slot {
   machineId Int        @map("machine_id")
   startAt   DateTime   @map("start_at") @db.Timestamptz(3)
   machine   GpuMachine @relation(fields: [machineId], references: [id], onDelete: Cascade)
+  bookings  Booking[]
 
   @@unique([machineId, startAt])
+  @@unique([id, startAt])
   @@map("slots")
+}
+
+model Booking {
+  id          Int      @id @default(autoincrement())
+  slotId      Int      @map("slot_id")
+  studentId   Int      @map("student_id")
+  slotStartAt DateTime @map("slot_start_at") @db.Timestamptz(3)
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  slot        Slot     @relation(fields: [slotId, slotStartAt], references: [id, startAt], onDelete: Restrict)
+  student     User     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([slotId])
+  @@unique([studentId, slotStartAt])
+  @@map("bookings")
 }
 
 model Session {

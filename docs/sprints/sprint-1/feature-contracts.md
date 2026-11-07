@@ -67,9 +67,11 @@ The student chooses a date, selects an available slot, and submits one booking r
 
 | API | Contract |
 |---|---|
-| `GET /api/v1/slots?date=YYYY-MM-DD` | Return `200` with the future, unbooked slots for the selected Bangkok calendar date, ordered by start time. Each entry contains `slotId`, `machineId`, `machineCode`, `startAt`, and `endAt`. Return an empty list when appropriate and `400` for a missing or invalid date. |
-| `POST /api/v1/bookings` | Accept `slotId` as a positive integer. Return `201` with `bookingId` and `slotId`, and a `Location` header for `/api/v1/bookings/{bookingId}`. Return `400` for an invalid ID and `404` for an unknown slot. Return `409` with `SLOT_ALREADY_STARTED`, `SLOT_ALREADY_BOOKED`, or `STUDENT_TIME_CONFLICT` when the student already holds another machine at that hour. |
-| `GET /api/v1/bookings/{bookingId}` | Return `200` with the student's own booking ID, slot ID, machine code, and slot times. Return `404` for an unknown booking or one owned by another student. |
+| `GET /api/v1/slots?date=YYYY-MM-DD` | Return `200` with the future, unbooked slots for the selected Bangkok calendar date, ordered by start time. Each entry contains `slotId`, `machineId`, `machineCode`, `startAt`, and `endAt`. Return an empty list when appropriate and `400` with `INVALID_DATE` for a missing or invalid date. |
+| `POST /api/v1/bookings` | Accept `slotId` as a positive integer. Return `201` with `bookingId` and `slotId`, and a `Location` header for `/api/v1/bookings/{bookingId}`. Return `400` with `INVALID_SLOT_ID` for an invalid ID and `404` with `SLOT_NOT_FOUND` for an unknown slot. Return `409` with `SLOT_ALREADY_STARTED`, `SLOT_ALREADY_BOOKED`, or `STUDENT_TIME_CONFLICT` when the student already holds another machine at that hour. |
+| `GET /api/v1/bookings/{bookingId}` | Return `200` with the student's own booking ID, slot ID, machine code, and slot times. Return `404` with `BOOKING_NOT_FOUND` for an invalid or unknown booking ID or one owned by another student. |
+
+Each F-03 route requires a valid session (`401 AUTH_REQUIRED`) and the student role (`403 FORBIDDEN`). These guards apply to the matching routes, so unrelated API paths can reach the API's `404 NOT_FOUND` handler.
 
 - **AC-01:** Booking an available slot creates a reservation that the student can retrieve as its owner.
 - **AC-02:** When two students request the same slot concurrently, one request succeeds and one is rejected. The database stores exactly one booking for the successful account.
@@ -124,3 +126,4 @@ The Sprint 1 release also requires the integrated browser journeys, local setup 
 | 0.1 | 2026-11-06 | Tanadet Nuchaikaew | Initial contracts for F-01 to F-04. |
 | 0.2 | 2026-11-06 | Thawat Boonsuk | Added the layer and data table to each feature. Added AC-18 to AC-23 for BR-04, input errors and password storage. AC-09 now covers detail only, and the list check moved to AC-18. Session expiry set to one hour. Expanded the Definition of Done. |
 | 0.3 | 2026-11-06 | Thawat Boonsuk | F-02 implemented: recorded the machine response fields, the error codes for each F-02 route, and the database check for whole-hour starts. |
+| 0.4 | 2026-11-07 | Tanadet Nuchaikaew | F-03 review: recorded input, missing-resource and access error codes, and clarified that student guards apply only to matching F-03 routes. |

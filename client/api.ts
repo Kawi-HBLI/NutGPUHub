@@ -38,6 +38,10 @@ export function formatBangkokTime(iso: string) {
   return bangkokTime.format(new Date(iso));
 }
 
+export function formatBangkokDate(iso: string) {
+  return bangkokDate.format(new Date(iso));
+}
+
 /** Today's date in Bangkok as YYYY-MM-DD. */
 export function bangkokToday() {
   return bangkokDate.format(new Date());

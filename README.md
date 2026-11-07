@@ -36,6 +36,8 @@ These documents are drafts for team review. The test cases describe planned chec
 
 Use Node.js 24 and PostgreSQL. Create separate development and test databases and give the configured database user access to each. From the repository root, copy `.env.example` to `.env`, update both database URLs, and set a private `DEMO_PASSWORD` for the prepared accounts.
 
+The student workspace now lists available hourly GPU slots by Bangkok date. A successful booking has an **Open saved booking** link that can be reloaded. Booking ownership and concurrent reservations are checked by the API and database. See [F-03 verification](docs/sprints/sprint-1/f03-verification.md) for the test evidence.
+
 ```powershell
 Copy-Item .env.example .env
 npm ci
