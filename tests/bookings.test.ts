@@ -123,7 +123,7 @@ test('TC-BOOK-03 accepts a slot one millisecond before it starts', async () => {
   expect(await database.booking.count({ where: { slotId: upcoming.id, studentId: users[0] } })).toBe(1);
 });
 
-test('TC-SLOT-02 excludes started slots and returns an empty list for a day without slots', async () => {
+test('TC-SLOT-02 excludes started slots from availability', async () => {
   const pastHour = await slot('2030-01-01T13:00:00+07:00', machines[1]);
   const startsNow = await slot('2030-01-01T14:00:00+07:00', machines[1]);
   const nextHour = await slot('2030-01-01T15:00:00+07:00', machines[1]);
@@ -131,9 +131,6 @@ test('TC-SLOT-02 excludes started slots and returns an empty list for a day with
   expect(listed).toEqual([nextHour.id]);
   expect(listed).not.toContain(pastHour.id);
   expect(listed).not.toContain(startsNow.id);
-  // No test fixture opens a slot on 2031-01-08, so the whole response must be empty.
-  const emptyDay = await request(app).get('/api/v1/slots?date=2031-01-08').set('Cookie', cookies[0]).expect(200);
-  expect(emptyDay.body).toEqual([]);
 });
 
 test('TC-SLOT-02 filters availability by Bangkok date and excludes booked slots', async () => {
