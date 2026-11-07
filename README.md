@@ -60,3 +60,12 @@ npm run db:migrate
 Remove-Item Env:DATABASE_URL
 npm test
 ```
+
+The browser journeys (`TC-E2E-01`, `TC-E2E-02`) use Playwright against the migrated test database. Install Chromium once, then run the suite. Playwright builds the app and starts it on `http://127.0.0.1:3100` with `TEST_DATABASE_URL`, so port 3100 must be free.
+
+```powershell
+npx playwright install chromium
+npm run test:e2e
+```
+
+Students see their saved reservations under **My bookings**, and operators see who booked each slot in the machine schedule.
