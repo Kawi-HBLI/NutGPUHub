@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { createRoot } from 'react-dom/client';
 import { setSessionExpiredHandler } from './api';
 import { OperatorWorkspace } from './operator';
+import { StudentWorkspace } from './student';
 import './styles.css';
 
 type Account = { id: number; username: string; role: 'student' | 'operator' };
@@ -89,6 +90,7 @@ function App() {
           {error && <p className="error" role="alert">{error}</p>}
           <button onClick={signOut} disabled={pending}>{pending ? 'Signing out…' : 'Sign out'}</button>
           {account.role === 'operator' && <OperatorWorkspace />}
+          {account.role === 'student' && <StudentWorkspace />}
         </>}
         {phase === 'ready' && !account && <>
           <h1 id="page-heading">Sign in</h1>
