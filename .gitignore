@@ -6,3 +6,6 @@ dist/
 coverage/
 playwright-report/
 test-results/
+
+# Local test evidence for the PDF report (not committed)
+evidence/
