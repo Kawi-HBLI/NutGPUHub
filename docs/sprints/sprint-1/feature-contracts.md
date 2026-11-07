@@ -40,9 +40,11 @@ An operator chooses an assigned machine, a date, and an hourly start. The UI pre
 
 | API | Contract |
 |---|---|
-| `GET /api/v1/machines` | Return `200` with the signed-in operator's assigned machines, each with its ID and code. |
-| `GET /api/v1/machines/{machineId}/slots?date=YYYY-MM-DD` | Return `200` with the assigned machine's slots for the selected Bangkok date. Each entry includes `slotId`, `machineId`, `startAt`, and `endAt`. Return `403` for an existing unassigned machine, `404` for an unknown machine, and `400` for a missing or invalid date. F-04 adds booking details to this response. |
-| `POST /api/v1/machines/{machineId}/slots` | Accept `startAt` as a timestamp with an offset, for example `2026-11-08T14:00:00+07:00`. Return `201` with `slotId`, `machineId`, `startAt`, and `endAt`. Return `400` for malformed, off-hour, or nonfuture times, `403` for an existing unassigned machine, `404` for an unknown machine, and `409` with `SLOT_ALREADY_EXISTS` for a duplicate slot. |
+| `GET /api/v1/machines` | Return `200` with the signed-in operator's assigned machines ordered by code, each as `{ machineId, machineCode }`. |
+| `GET /api/v1/machines/{machineId}/slots?date=YYYY-MM-DD` | Return `200` with the assigned machine's slots for the selected Bangkok date, ordered by start time. Each entry includes `slotId`, `machineId`, `startAt`, and `endAt`. Return `403` with `MACHINE_NOT_ASSIGNED` for an existing unassigned machine, `404` with `MACHINE_NOT_FOUND` for an unknown machine, and `400` with `INVALID_DATE` for a missing or invalid date. F-04 adds booking details to this response. |
+| `POST /api/v1/machines/{machineId}/slots` | Accept `startAt` as a timestamp with an offset, for example `2026-11-08T14:00:00+07:00`. Return `201` with `slotId`, `machineId`, `startAt`, and `endAt`. Return `400` with `INVALID_START_AT`, `START_NOT_ON_HOUR`, or `START_NOT_IN_FUTURE`, `403` with `MACHINE_NOT_ASSIGNED`, `404` with `MACHINE_NOT_FOUND`, and `409` with `SLOT_ALREADY_EXISTS` for a duplicate slot. |
+
+All three routes require a valid session (`401 AUTH_REQUIRED`) and the operator role (`403 FORBIDDEN`). The database also rejects a start time that is not on the hour, as a backstop for BR-01. Timestamps in responses use UTC (`Z`).
 
 - **AC-04:** An assigned operator can open consecutive hourly slots on the same machine. Opening the same start time twice is rejected.
 - **AC-05:** A start time of `14:30` is rejected and creates no slot.
@@ -121,3 +123,4 @@ The Sprint 1 release also requires the integrated browser journeys, local setup 
 |---|---|---|---|
 | 0.1 | 2026-11-06 | Tanadet Nuchaikaew | Initial contracts for F-01 to F-04. |
 | 0.2 | 2026-11-06 | Thawat Boonsuk | Added the layer and data table to each feature. Added AC-18 to AC-23 for BR-04, input errors and password storage. AC-09 now covers detail only, and the list check moved to AC-18. Session expiry set to one hour. Expanded the Definition of Done. |
+| 0.3 | 2026-11-06 | Thawat Boonsuk | F-02 implemented: recorded the machine response fields, the error codes for each F-02 route, and the database check for whole-hour starts. |

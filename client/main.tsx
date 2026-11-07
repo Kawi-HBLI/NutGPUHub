@@ -1,5 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { createRoot } from 'react-dom/client';
+import { setSessionExpiredHandler } from './api';
+import { OperatorWorkspace } from './operator';
 import './styles.css';
 
 type Account = { id: number; username: string; role: 'student' | 'operator' };
@@ -10,6 +12,14 @@ function App() {
   const [phase, setPhase] = useState<'checking' | 'ready' | 'unavailable'>('checking');
   const [pending, setPending] = useState(false);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    // A protected request that returns 401 means the one-hour session ended: go back to sign-in.
+    setSessionExpiredHandler(() => {
+      setAccount(null);
+      setError('Your session has ended. Sign in again.');
+    });
+  }, []);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -78,6 +88,7 @@ function App() {
           <p>Signed in as <strong>{account.username}</strong> ({account.role}).</p>
           {error && <p className="error" role="alert">{error}</p>}
           <button onClick={signOut} disabled={pending}>{pending ? 'Signing out…' : 'Sign out'}</button>
+          {account.role === 'operator' && <OperatorWorkspace />}
         </>}
         {phase === 'ready' && !account && <>
           <h1 id="page-heading">Sign in</h1>

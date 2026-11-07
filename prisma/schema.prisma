@@ -18,8 +18,30 @@ model User {
   passwordHash String    @map("password_hash")
   role         Role
   sessions     Session[]
+  machines     GpuMachine[]
 
   @@map("users")
+}
+
+model GpuMachine {
+  id         Int    @id @default(autoincrement())
+  code       String @unique @db.VarChar(40)
+  operatorId Int    @map("operator_id")
+  operator   User   @relation(fields: [operatorId], references: [id], onDelete: Restrict)
+  slots      Slot[]
+
+  @@index([operatorId])
+  @@map("gpu_machines")
+}
+
+model Slot {
+  id        Int        @id @default(autoincrement())
+  machineId Int        @map("machine_id")
+  startAt   DateTime   @map("start_at") @db.Timestamptz(3)
+  machine   GpuMachine @relation(fields: [machineId], references: [id], onDelete: Cascade)
+
+  @@unique([machineId, startAt])
+  @@map("slots")
 }
 
 model Session {

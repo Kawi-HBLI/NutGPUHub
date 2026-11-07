@@ -44,7 +44,7 @@ npm run db:migrate
 npm run db:seed
 ```
 
-Run `npm run dev:api` in one terminal and `npm run dev:web` in another. Open `http://localhost:5173` and use `student-a` or `operator-a` with the password you set. The seed also prepares `student-b` and `operator-b` for later checks.
+Run `npm run dev:api` in one terminal and `npm run dev:web` in another. Open `http://localhost:5173` and use `student-a` or `operator-a` with the password you set. The seed also prepares `student-b` and `operator-b`, and the GPU machines `GPU-01` (assigned to `operator-a`) and `GPU-02` (assigned to `operator-b`). Sign in as an operator to open one-hour slots on an assigned machine.
 
 To serve the built UI and API from one local address, run `npm run build`, set `APP_ORIGIN` in `.env` to `http://localhost:3000`, and run `npm start`. Restore `http://localhost:5173` in `.env` when returning to the Vite development server. Use `SESSION_TTL_MINUTES=60` and `COOKIE_SECURE=false` for local HTTP.
 
