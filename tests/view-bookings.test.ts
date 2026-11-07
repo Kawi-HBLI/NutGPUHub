@@ -90,6 +90,19 @@ test('TC-ACCESS-02 limits booking lists and details to their owner and schedules
   expect(Object.keys(unassigned.body)).toEqual(['error']);
 });
 
+test('AC-18 My Bookings lists several own bookings by slot start, whatever order they were made in', async () => {
+  const late = await openSlot('2032-01-03T15:00:00+07:00');
+  const early = await openSlot('2032-01-03T09:00:00+07:00');
+  const lateBooking = await book(late.id, 'studentB');
+  const earlyBooking = await book(early.id, 'studentB');
+  const list = await request(app).get('/api/v1/bookings').set('Cookie', cookies.studentB).expect(200);
+  const rows = list.body as { bookingId: number; startAt: string }[];
+  const starts = rows.map(row => row.startAt);
+  expect(starts).toEqual([...starts].sort());
+  expect(rows.map(row => row.bookingId).filter(id => id === earlyBooking || id === lateBooking))
+    .toEqual([earlyBooking, lateBooking]);
+});
+
 test('My Bookings returns an empty list for a student without bookings', async () => {
   const name = `view-empty-${suffix}`;
   const user = await database.user.create({ data: { username: name, passwordHash: await hashPassword(password), role: 'student' } });
