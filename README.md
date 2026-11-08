@@ -34,6 +34,7 @@ F-01 to F-04 have reviewed implementations in `sprint-1-staging`. DOC-01 (#11) r
 | [Work tracking](docs/work-tracking.md) | Issue links, labels, milestones, ownership and dependencies |
 | [Sprint 1 verification](docs/sprints/sprint-1/verification.md) | AC-to-actual-test mapping, tested commits and explicit gaps |
 | [Deliverable 1 checklist](docs/sprints/sprint-1/submission-checklist.md) | Complete A-F content, release evidence and private PDF submission gates |
+| [UI-01 verification](docs/sprints/sprint-1/ui-verification.md) | Shared visual system, before/after screenshots, keyboard/contrast checks and UI regression results |
 
 Use the [project board](https://github.com/users/Kawi-HBLI/projects/6), [Issues](https://github.com/Kawi-HBLI/NutGPUHub/issues) and [milestones](https://github.com/Kawi-HBLI/NutGPUHub/milestones) to follow current work. F-05 to F-08 remain planned for later sprints. The original nine FR IDs stay stable; dotted subrequirements explain their observable behavior without adding new features.
 

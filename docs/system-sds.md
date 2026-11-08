@@ -53,6 +53,12 @@ Sign-in verifies an argon2id password hash and creates an opaque server-side ses
 - **Operator view.** List assigned machines, preview the selected one-hour slot, and show the schedule with reservation details. Preserve the selected date and time when correcting a rejected submission.
 - Show loading, empty, and failure states for each data view. Use JSON under `/api/v1`. Dates use `YYYY-MM-DD` in Bangkok time, while timestamps include a time-zone offset or UTC designator. Return safe, consistent error responses with an `error` object containing `code` and `message`. Error responses never include stack traces, SQL, or data the caller is not allowed to read.
 
+### UI-01 presentation implementation
+
+The presentation layer uses shared Button, Input, Select, Card, Table, StatusBadge and Alert components in `client/components.tsx`. `client/styles.css` defines the shared color, typography, spacing and radius tokens. Sign-in and role workspaces share the brand header, surfaces, controls, focus treatment and feedback styling. The operator schedule is a captioned table; student availability and My Bookings remain lists. Narrow layouts stack their cards. The schedule uses one time-and-reservation column at every width; each time range already conveys the fixed one-hour length. Role context stays in the heading and account text rather than a reservation-status badge. Disabled buttons use a not-allowed cursor; buttons with pending requests expose `aria-busy` and use a wait cursor.
+
+Available, booked/confirmed, started/past and error states use text and a consistent token palette. Time labels are presentation derived at render time; API permissions and server-clock validation remain authoritative. The [UI verification record](sprints/sprint-1/ui-verification.md) contains the before/after comparisons and acceptance checks.
+
 ## Configuration
 
 | Variable | Purpose | Example in `.env.example` |
@@ -95,3 +101,5 @@ Planned F-05/F-06 operations will use transactions to change confirmed state and
 | 0.2 | 2026-11-06 | Thawat Boonsuk | Added the data diagram, BR-04 constraint, injected clock, Sprint 2 partial index plan, argon2id and one-hour sessions, full role matrix, configuration table, and the Cloud Run deployment design. |
 | 0.3 | 2026-11-07 | Tanadet Nuchaikaew | Documented current composite FK and request flow, fixed TTL validation, seed configuration, verification commands and planned state/cardinality changes. |
 | 0.4 | 2026-11-07 | Tanadet Nuchaikaew | PR #21 review: documented the existing PUBLIC_ORIGIN fallback and origin precedence. |
+| 0.5 | 2026-11-07 | Tanadet Nuchaikaew | UI-01: recorded the shared presentation components, responsive layout and verification reference. |
+| 0.6 | 2026-11-08 | Tanadet Nuchaikaew | PR #23 review: simplified role/availability labels and schedule columns; distinguished disabled controls from pending requests. |
