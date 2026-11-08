@@ -74,6 +74,8 @@ The empty-day test runs in its own schema because the shared test database may h
 
 The [UI-01 record](ui-verification.md) documents the restyle built from staging `81a7300`, with before/after screenshots and rendered-state checks. The same 35 unit/API tests, both browser journeys, build and real-process restart check passed with the shared presentation components. The UI-01 PR identifies the corresponding committed implementation for peer review.
 
+On November 8, these commands were rerun on the PR #23 review-fix working tree based on orange-palette commit `8b02008`; all passed again. The orange UI also passed 19 axe scans (zero violations or incomplete checks), 245 reflow checks, keyboard focus traversal and 13 text-contrast pairs (minimum 5.3037:1). The refreshed after screenshots and local evidence path are recorded in the UI-01 document. This is branch-level review evidence; #16 still owns verification of the accepted final candidate.
+
 ## Required release follow-up
 
 - Complete the explicit coverage gaps above in #16 and report actual failures/skips rather than marking the full STS passed from its test ID alone.
@@ -91,3 +93,4 @@ The [UI-01 record](ui-verification.md) documents the restyle built from staging 
 | 0.3 | 2026-11-07 | Thawat Boonsuk | QA-01: recorded the added started-slot, empty-day, booking-boundary, no-write and ordering tests with their branch results and mutation checks. |
 | 0.4 | 2026-11-07 | Thawat Boonsuk | PR #22 review: moved the empty-day check to an isolated schema and recorded the exact tested commit. |
 | 0.5 | 2026-11-07 | Tanadet Nuchaikaew | Linked UI-01 visual checks and the unchanged regression suite results after the restyle. |
+| 0.6 | 2026-11-08 | Tanadet Nuchaikaew | Recorded the orange-palette UI review rerun and refreshed evidence while preserving the final-candidate release gate. |

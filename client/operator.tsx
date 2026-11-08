@@ -83,7 +83,7 @@ export function OperatorWorkspace() {
             </Select></div>
           <p className="preview" aria-live="polite">Slot: {hour}:00–{endHour}:00, Bangkok time</p>
           {notice && <Alert tone={notice.kind}>{notice.text}</Alert>}
-          <Button type="submit" disabled={pending || !date}>{pending ? 'Opening…' : 'Open slot'}</Button>
+          <Button type="submit" disabled={pending || !date} aria-busy={pending}>{pending ? 'Opening…' : 'Open slot'}</Button>
         </form>
       </Card>
       <Card aria-labelledby="schedule-heading">
@@ -93,7 +93,7 @@ export function OperatorWorkspace() {
         {slots.state === 'ready' && slots.data.length === 0 && <Alert tone="empty">No slots on this date.</Alert>}
         {slots.state === 'ready' && slots.data.length > 0 && (
           <Table caption={`Slots and reservations for ${date}`}>
-            <thead><tr><th scope="col">Time and reservation</th><th scope="col">Length</th></tr></thead>
+            <thead><tr><th scope="col">Time and reservation</th></tr></thead>
             <tbody>{slots.data.map(slot => (
               <tr key={slot.slotId}><td><div className="schedule-summary">
                 {formatBangkokTime(slot.startAt)}–{formatBangkokTime(slot.endAt)} ·{' '}
@@ -101,7 +101,7 @@ export function OperatorWorkspace() {
                   ? <><StatusBadge tone="booked">Booked by <strong>{slot.booking.studentUsername}</strong></StatusBadge><small>(booking #{slot.booking.bookingId})</small></>
                   : <StatusBadge tone={new Date(slot.startAt).getTime() <= Date.now() ? 'past' : 'available'}>
                     {new Date(slot.startAt).getTime() <= Date.now() ? 'Started / past' : 'Available'}</StatusBadge>}
-              </div></td><td>1 hour</td></tr>
+              </div></td></tr>
             ))}</tbody>
           </Table>
         )}

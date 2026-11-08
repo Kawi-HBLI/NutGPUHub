@@ -55,7 +55,7 @@ Sign-in verifies an argon2id password hash and creates an opaque server-side ses
 
 ### UI-01 presentation implementation
 
-The presentation layer uses shared Button, Input, Select, Card, Table, StatusBadge and Alert components in `client/components.tsx`. `client/styles.css` defines the shared color, typography, spacing and radius tokens. Sign-in and role workspaces share the brand header, surfaces, controls, focus treatment and feedback styling. The operator schedule is a captioned table; student availability and My Bookings remain lists. Narrow layouts stack their cards; the fixed one-hour length column is hidden on narrow screens because the time range already conveys it.
+The presentation layer uses shared Button, Input, Select, Card, Table, StatusBadge and Alert components in `client/components.tsx`. `client/styles.css` defines the shared color, typography, spacing and radius tokens. Sign-in and role workspaces share the brand header, surfaces, controls, focus treatment and feedback styling. The operator schedule is a captioned table; student availability and My Bookings remain lists. Narrow layouts stack their cards. The schedule uses one time-and-reservation column at every width; each time range already conveys the fixed one-hour length. Role context stays in the heading and account text rather than a reservation-status badge. Disabled buttons use a not-allowed cursor; buttons with pending requests expose `aria-busy` and use a wait cursor.
 
 Available, booked/confirmed, started/past and error states use text and a consistent token palette. Time labels are presentation derived at render time; API permissions and server-clock validation remain authoritative. The [UI verification record](sprints/sprint-1/ui-verification.md) contains the before/after comparisons and acceptance checks.
 
@@ -102,3 +102,4 @@ Planned F-05/F-06 operations will use transactions to change confirmed state and
 | 0.3 | 2026-11-07 | Tanadet Nuchaikaew | Documented current composite FK and request flow, fixed TTL validation, seed configuration, verification commands and planned state/cardinality changes. |
 | 0.4 | 2026-11-07 | Tanadet Nuchaikaew | PR #21 review: documented the existing PUBLIC_ORIGIN fallback and origin precedence. |
 | 0.5 | 2026-11-07 | Tanadet Nuchaikaew | UI-01: recorded the shared presentation components, responsive layout and verification reference. |
+| 0.6 | 2026-11-08 | Tanadet Nuchaikaew | PR #23 review: simplified role/availability labels and schedule columns; distinguished disabled controls from pending requests. |

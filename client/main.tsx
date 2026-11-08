@@ -3,7 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { setSessionExpiredHandler } from './api';
 import { OperatorWorkspace } from './operator';
 import { StudentWorkspace } from './student';
-import { Alert, Brand, Button, Card, Input, StatusBadge } from './components';
+import { Alert, Brand, Button, Card, Input } from './components';
 import './styles.css';
 
 type Account = { id: number; username: string; role: 'student' | 'operator' };
@@ -100,8 +100,7 @@ function App() {
               <p className="muted">Signed in as <strong>{account.username}</strong> ({account.role}).</p>
             </div>
             <div className="page-actions">
-              <StatusBadge tone="past">{account.role === 'student' ? 'Student' : 'Operator'}</StatusBadge>
-              <Button variant="secondary" onClick={signOut} disabled={pending}>{pending ? 'Signing out…' : 'Sign out'}</Button>
+              <Button variant="secondary" onClick={signOut} disabled={pending} aria-busy={pending}>{pending ? 'Signing out…' : 'Sign out'}</Button>
             </div>
           </div>
           {error && <Alert tone="error">{error}</Alert>}
@@ -126,7 +125,7 @@ function App() {
               <div className="field"><label htmlFor="password">Password</label>
                 <Input id="password" name="password" type="password" autoComplete="current-password" required maxLength={256} /></div>
               {error && <Alert tone="error">{error}</Alert>}
-              <Button type="submit" disabled={pending}>{pending ? 'Signing in…' : 'Sign in'}</Button>
+              <Button type="submit" disabled={pending} aria-busy={pending}>{pending ? 'Signing in…' : 'Sign in'}</Button>
             </form>
           </Card>
         </div>}

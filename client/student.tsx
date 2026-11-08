@@ -77,9 +77,8 @@ export function StudentWorkspace() {
         {slots.state === 'ready' && slots.data.length === 0 && <Alert tone="empty">No available slots on this date.</Alert>}
         {slots.state === 'ready' && <ul className="schedule" aria-label="Available slots">
           {slots.data.map(slot => <li className="slot-row" key={slot.slotId}>
-            <div className="slot-info"><span><strong>{slot.machineCode}</strong> · {formatBangkokTime(slot.startAt)}–{formatBangkokTime(slot.endAt)}</span>
-              <span><StatusBadge tone="available">Available</StatusBadge></span></div>
-            <Button disabled={pending} onClick={() => void book(slot)} aria-label={`Book ${slot.machineCode} at ${formatBangkokTime(slot.startAt)}`}>Book</Button>
+            <div className="slot-info"><span><strong>{slot.machineCode}</strong> · {formatBangkokTime(slot.startAt)}–{formatBangkokTime(slot.endAt)}</span></div>
+            <Button disabled={pending} aria-busy={pending} onClick={() => void book(slot)} aria-label={`Book ${slot.machineCode} at ${formatBangkokTime(slot.startAt)}`}>Book</Button>
           </li>)}
         </ul>}
       </div>
