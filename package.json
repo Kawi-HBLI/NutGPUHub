@@ -13,6 +13,7 @@
     "db:seed": "node --env-file-if-exists=.env --import tsx prisma/seed.ts",
     "test": "node --env-file-if-exists=.env node_modules/vitest/vitest.mjs run",
     "test:e2e": "playwright test",
+    "verify:dev": "vitest run tests/dev-proxy.test.ts",
     "verify:restart": "npm run build && node --env-file-if-exists=.env --import tsx scripts/process-restart-check.ts"
   },
   "dependencies": {

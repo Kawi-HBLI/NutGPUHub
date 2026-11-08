@@ -76,6 +76,10 @@ The [UI-01 record](ui-verification.md) documents the restyle built from staging 
 
 On November 8, these commands were rerun on the PR #23 review-fix working tree based on orange-palette commit `8b02008`; all passed again. The orange UI also passed 19 axe scans (zero violations or incomplete checks), 245 reflow checks, keyboard focus traversal and 13 text-contrast pairs (minimum 5.3037:1). The refreshed after screenshots and local evidence path are recorded in the UI-01 document. This is branch-level review evidence; #16 still owns verification of the accepted final candidate.
 
+## Development routing follow-up
+
+BUG-01 (#24) adds `tests/dev-proxy.test.ts` (TC-DEV-01) because the existing browser journeys use the built server and do not load Vite's `/api.ts` module. On the fix branch based on accepted UI merge `cb8b5a9`, the original `/api` prefix returned 404 JSON for that module and the regression check failed. The `/api/` fix returns 200 JavaScript while preserving API proxying. `npm test` passed 36 tests across 7 files; build and both unchanged E2E scenarios passed. The [development proxy record](dev-proxy-verification.md) includes the automated check's limits and the actual Vite/API browser demonstration. These branch results do not complete final-candidate acceptance in #16.
+
 ## Required release follow-up
 
 - Complete the explicit coverage gaps above in #16 and report actual failures/skips rather than marking the full STS passed from its test ID alone.
@@ -94,3 +98,4 @@ On November 8, these commands were rerun on the PR #23 review-fix working tree b
 | 0.4 | 2026-11-07 | Thawat Boonsuk | PR #22 review: moved the empty-day check to an isolated schema and recorded the exact tested commit. |
 | 0.5 | 2026-11-07 | Tanadet Nuchaikaew | Linked UI-01 visual checks and the unchanged regression suite results after the restyle. |
 | 0.6 | 2026-11-08 | Tanadet Nuchaikaew | Recorded the orange-palette UI review rerun and refreshed evidence while preserving the final-candidate release gate. |
+| 0.7 | 2026-11-08 | Tanadet Nuchaikaew | Recorded BUG-01 development-routing reproduction, regression coverage and branch verification without closing QA-01. |
