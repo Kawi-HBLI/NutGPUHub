@@ -4,7 +4,7 @@ UI-01 (#6) applies one presentation system to the accepted F-01 to F-04 screens.
 
 ## Presentation design
 
-`client/styles.css` owns the color, type, spacing and radius tokens. The palette uses a warm light canvas, white surfaces and a dark green primary action. Available, booked, started/past and error states have distinct colors and visible text. The original microchip wordmark is inline SVG and uses `currentColor`; fonts are local system fonts.
+`client/styles.css` owns the color, type, spacing and radius tokens. The palette uses a warm light canvas, white surfaces and a dark orange primary action (`#b33d00`), with a blue focus outline that stays distinct from the primary color. Available, booked, started/past and error states have distinct colors and visible text. The original microchip wordmark is inline SVG and uses `currentColor`; fonts are local system fonts.
 
 `client/components.tsx` supplies Button, Input, Select, Card, Table, StatusBadge, Alert and Brand. Sign-in and both workspaces use these components. Student reservations remain semantic lists; the operator schedule uses a captioned table. Desktop layouts separate primary work and supporting information; narrow screens stack those sections.
 
@@ -15,7 +15,7 @@ The student workspace separates availability, saved booking detail and My Bookin
 | Criterion | Check and actual result |
 |---|---|
 | UI-AC-01: shared tokens/components | No hexadecimal color literals or inline style attributes in TSX page files. Shared controls and state components are used across sign-in, student and operator screens. Source/API/test/dependency scope was inspected. |
-| UI-AC-02: contrast | Browser-loaded CSS tokens were checked for 12 foreground/background text pairs. Minimum ratio 5.7455:1. axe-core 4.14.0 ran 19 checks across screens, widths and feedback states with zero WCAG-tagged violations and no incomplete checks. |
+| UI-AC-02: contrast | Browser-loaded CSS tokens were checked for 12 foreground/background text pairs. Minimum ratio 5.7455:1. axe-core 4.14.0 ran 19 checks across screens, widths and feedback states with zero WCAG-tagged violations and no incomplete checks. These results were recorded on the earlier green palette. After the dark orange change, a calculated check of the new token pairs gives a minimum text contrast of 5.30:1 (accent on canvas); axe has not been rerun on the new palette. |
 | UI-AC-03: keyboard focus | Tab traversal checked 4 distinct controls on sign-in, 11 on the student screen and 6 on the operator screen. Each inspected control had a visible 3px focus outline. A native date-field focus gap found during QA was fixed with `:focus-within`. A skip link reaches the main content. |
 | UI-AC-04: feedback | Loading, empty availability, empty My Bookings, invalid credentials, data-load error/retry, booking conflict, operator rejection and past booking states were exercised. Feedback uses the shared Alert/StatusBadge components; errors retain `role="alert"` and success retains `role="status"`. |
 
@@ -36,7 +36,7 @@ All runs used isolated synthetic PostgreSQL data. Raw output, contrast ratios, a
 
 ## Before and after screenshots
 
-The screenshots below use synthetic accounts. Record IDs can differ because each capture run creates fresh fixtures. The saved-booking screen includes My Bookings; the operator screen includes both machine selection and the daily schedule.
+The screenshots below use synthetic accounts and show the earlier green palette; layout and states are unchanged by the later color change. Record IDs can differ because each capture run creates fresh fixtures. The saved-booking screen includes My Bookings; the operator screen includes both machine selection and the daily schedule.
 
 | Screen/state | Before (1440px) | After (1440px) |
 |---|---|---|
@@ -53,3 +53,4 @@ Mobile examples: [sign-in](images/ui-01/after-sign-in-mobile.png), [student avai
 | Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1 | 2026-11-07 | Tanadet Nuchaikaew | Recorded UI-01 presentation, accessibility/responsive checks, regression results and before/after evidence for peer review. |
+| 0.2 | 2026-11-08 | Thawat Boonsuk | PR #23 review: changed the primary color to dark orange with warm neutrals and a blue focus outline; recorded the calculated contrast and the checks still to rerun. |
