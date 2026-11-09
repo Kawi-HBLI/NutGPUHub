@@ -1,6 +1,6 @@
 # Deliverable 1 Preparation Checklist
 
-Preparation guide for REL-01 (#17), based on the Deliverable 1 sheet. Deadline: November 8, 2026, 23:59 Asia/Bangkok. See the [verification record](verification.md) for execution results and coverage status.
+Preparation guide for REL-01 (#17), based on the Deliverable 1 sheet. The original handout date was extended. Use the latest course announcement on LEB2 for the current deadline. See the [verification record](verification.md) for execution results and coverage status.
 
 ## Parts A-F
 
