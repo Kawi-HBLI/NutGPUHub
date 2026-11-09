@@ -1,6 +1,6 @@
 # Deliverable 1 Preparation Checklist
 
-Preparation guide for REL-01 (#17), based on the Deliverable 1 sheet. The original handout date was extended. Use the latest course announcement on LEB2 for the current deadline. See the [verification record](verification.md) for execution results and coverage status.
+Preparation guide for REL-01 (#17), based on the Deliverable 1 sheet. The team recorded the revised deadline as **November 15, 2026 at 23:59 (Asia/Bangkok)** in the [PR #26 peer review](https://github.com/Kawi-HBLI/NutGPUHub/pull/26). The [verification record](verification.md) lists the execution results and coverage status.
 
 ## Parts A-F
 
@@ -17,10 +17,10 @@ Paths without a `docs/` prefix above refer to this Sprint 1 directory. Keep the 
 
 ## Release and evidence gates
 
-- [ ] All changes selected for Sprint 1 are peer-reviewed and integrated into staging. Record UI-01 (#6) disposition and unresolved limitations explicitly.
-- [ ] Complete QA-01 (#16), including the declared planned-scenario gaps and clean-checkout setup.
-- [ ] The reviewed staging-to-main PR is approved and merged by its reviewer; identify the immutable main tag/commit.
-- [ ] Build, API/unit, browser and real-process persistence outputs identify the actual submitted version, commands and pass/fail/skip counts. Recheck if its runtime tree differs from the tested candidate.
+- [x] The Sprint 1 changes, including UI-01 (#6), were peer-reviewed and integrated into staging. The [acceptance record](staging-acceptance.md) lists the remaining limitations.
+- [x] QA-01 (#16) completed the declared coverage gaps and clean-checkout run. Chessuker approved and merged PR #26.
+- [x] Kawi-HBLI approved and merged release PR #27. The [sprint-1 tag](https://github.com/Kawi-HBLI/NutGPUHub/tree/sprint-1) points to `984c4ad730ff9acc2af736f523cfc62a2ea52667` on `main`.
+- [x] Build, automated tests, E2E and real-process restart passed again on the tagged `main` commit. See the [main release verification](staging-acceptance.md#main-release-verification).
 - [ ] Demonstrations show a normal UI/API/database journey with saved retrieval, meaningful rejection, login/logout and a forbidden operation. Caption each with AC/feature, role, conditions, steps and expected/actual result.
 - [ ] Embed an AC-to-planned-test-to-actual-test/result table and two short real test excerpts: a domain rule and an access restriction.
 - [ ] Embed genuine TDD red/green evidence with the relevant versions for TC-BOOK-02 and TC-BOOK-04.
@@ -44,3 +44,4 @@ Docker, completed CI/CD, a cloud URL and a separate video are not required for D
 |---|---|---|---|
 | 0.1 | 2026-11-07 | Tanadet Nuchaikaew | Added the actual A-F content map and outstanding release/PDF gates without claiming completion. |
 | 0.2 | 2026-11-07 | Tanadet Nuchaikaew | PR #21 review: linked the central execution record and the account/display-name reference for Part F. |
+| 0.3 | 2026-11-09 | Tanadet Nuchaikaew | Recorded the revised deadline and completed QA, release and main verification gates. |

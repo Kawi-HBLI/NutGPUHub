@@ -6,7 +6,7 @@ The [feature inventory](../features.md) gives each feature's dependencies. The [
 
 **Features:** F-01 through F-04. Start with account sessions and machine assignments. An assigned operator opens a slot, a student finds and books it, and both roles retrieve the saved result within their permissions.
 
-**Completion on November 8, 2026.** Release the reviewed increment on `main`. Demonstrate the UI-to-database workflow, concurrent booking protection, the one-machine-per-hour rule, invalid and past slot handling, and role and ownership restrictions. Record the release reference, local setup, test results, and teammate review. Submit the required self-contained PDF through LEB2.
+**Deliverable 1 is due November 15, 2026 at 23:59 (Asia/Bangkok).** Release the reviewed increment on `main`. Demonstrate the UI-to-database workflow, concurrent booking protection, the one-machine-per-hour rule, invalid and past slot handling, and role and ownership restrictions. Record the release reference, local setup, test results, and teammate review. Submit the required self-contained PDF through LEB2.
 
 ## Sprint 2: Handle booking changes
 
@@ -56,3 +56,4 @@ Track actual board states and milestone dates in [work tracking](../work-trackin
 | 0.1 | 2026-11-06 | Tanadet Nuchaikaew | Initial three-sprint plan. |
 | 0.2 | 2026-11-06 | Thawat Boonsuk | Placed Labs 5 to 7 in Sprint 2, named Cloud Run, and stated the hardening work in Sprint 3. |
 | 0.3 | 2026-11-07 | Tanadet Nuchaikaew | Added real ownership, dependency/exit gates, work links and release risks after F-04 without expanding feature scope. |
+| 0.4 | 2026-11-09 | Tanadet Nuchaikaew | Recorded the revised Deliverable 1 deadline reported in the PR #26 peer review. |

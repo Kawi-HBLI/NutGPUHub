@@ -53,7 +53,7 @@ The November 7 organization adds work items prospectively for remaining work and
 
 | Milestone | Due date (Asia/Bangkok) | Required outcome |
 |---|---|---|
-| Sprint 1 - Deliverable 1 | November 8, 2026, 23:59 | Reviewed main increment plus one self-contained PDF with Parts A-F. |
+| Sprint 1 - Deliverable 1 | November 15, 2026, 23:59 | Reviewed main increment plus one self-contained PDF with Parts A-F. |
 | Sprint 2 - Deliverable 2 | November 29, 2026, 23:59 | Completed F-05 to F-07 and required Sprint 3 implemented/tested/deployed progress. Labs have their own earlier dates. |
 | Sprint 3 - Final delivery | December 13, 2026, 23:59 | Complete product baseline, deployed verification, independent retesting, final report and video. |
 
@@ -65,3 +65,4 @@ The November 7 organization adds work items prospectively for remaining work and
 | 0.2 | 2026-11-07 | Tanadet Nuchaikaew | PR #21 review: added the verified GitHub login/display-name mapping for the Part F contribution table. |
 | 0.3 | 2026-11-07 | Tanadet Nuchaikaew | Recorded UI-01 ownership and the visual-verification handoff. |
 | 0.4 | 2026-11-08 | Tanadet Nuchaikaew | Assigned the remaining QA-01 work and the separate Vite proxy fix to Tanadet, with Thawat as reviewer. |
+| 0.5 | 2026-11-09 | Tanadet Nuchaikaew | Updated the Deliverable 1 milestone row to the revised deadline. |
