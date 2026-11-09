@@ -80,13 +80,15 @@ On November 8, these commands were rerun on the PR #23 review-fix working tree b
 
 BUG-01 (#24) adds `tests/dev-proxy.test.ts` (TC-DEV-01) because the existing browser journeys use the built server and do not load Vite's `/api.ts` module. On the fix branch based on accepted UI merge `cb8b5a9`, the original `/api` prefix returned 404 JSON for that module and the regression check failed. The `/api/` fix returns 200 JavaScript while preserving API proxying. `npm test` passed 36 tests across 7 files; build and both unchanged E2E scenarios passed. The [development proxy record](dev-proxy-verification.md) includes the automated check's limits and the actual Vite/API browser demonstration. These branch results do not complete final-candidate acceptance in #16.
 
+## Integrated staging acceptance
+
+The [staging acceptance record](staging-acceptance.md) contains the November 9 clean-checkout run at `f2c1689c688f5612d577375db4d95c133eec5dfd`, including 36 passing tests, both E2E journeys, build, restart, and Part F demonstrations with scoped database evidence. The accepted staging candidate includes UI-01 and BUG-01. The prior runs above remain useful for tracing earlier revisions.
+
 ## Required release follow-up
 
-- Complete the explicit coverage gaps above in #16 and report actual failures/skips rather than marking the full STS passed from its test ID alone.
-- Capture release demonstrations with role, starting state, steps, expected/actual result and AC IDs. API/DB output must accompany the forbidden-operation demonstration.
-- Rerun after accepted UI changes (#6); retain a clean-checkout setup record and final candidate SHA.
-- Select two genuine completed Issue/PR chains and substantive peer reviews for Part F. Preserve original contract-before-code commits and actual TDD logs.
-- Verify the accepted main release, immutable reference, PDF page navigation, contributions and limitations in #17. Sprint 1 is not submitted merely because the staging features passed.
+- Peer-review the recorded staging acceptance evidence and resolve any gaps before closing #16.
+- Embed the demonstrated cases, actual test assertions, two completed Issue/PR review chains, contract history and original TDD results in Part F.
+- Verify the reviewed main release, immutable reference, PDF page navigation, contributions and limitations in #17.
 
 ## Version history
 
@@ -99,3 +101,4 @@ BUG-01 (#24) adds `tests/dev-proxy.test.ts` (TC-DEV-01) because the existing bro
 | 0.5 | 2026-11-07 | Tanadet Nuchaikaew | Linked UI-01 visual checks and the unchanged regression suite results after the restyle. |
 | 0.6 | 2026-11-08 | Tanadet Nuchaikaew | Recorded the orange-palette UI review rerun and refreshed evidence while preserving the final-candidate release gate. |
 | 0.7 | 2026-11-08 | Tanadet Nuchaikaew | Recorded BUG-01 development-routing reproduction, regression coverage and branch verification without closing QA-01. |
+| 0.8 | 2026-11-09 | Tanadet Nuchaikaew | Recorded clean staging setup, integrated test execution and Part F demonstrations for QA-01 peer review. |
