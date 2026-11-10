@@ -84,11 +84,9 @@ BUG-01 (#24) adds `tests/dev-proxy.test.ts` (TC-DEV-01) because the existing bro
 
 The [staging acceptance record](staging-acceptance.md) contains the November 9 clean-checkout run at `f2c1689c688f5612d577375db4d95c133eec5dfd`, including 36 passing tests, both E2E journeys, build, restart, and Part F demonstrations with scoped database evidence. The accepted staging candidate includes UI-01 and BUG-01. The prior runs above remain useful for tracing earlier revisions.
 
-## Required release follow-up
+## Verified main release
 
-- Peer-review the recorded staging acceptance evidence and resolve any gaps before closing #16.
-- Embed the demonstrated cases, actual test assertions, two completed Issue/PR review chains, contract history and original TDD results in Part F.
-- Verify the reviewed main release, immutable reference, PDF page navigation, contributions and limitations in #17.
+QA-01 closed after peer approval and merge of PR #26. PR #27 then merged Sprint 1 to `main`. The [main release verification](staging-acceptance.md#main-release-verification) records all four passing checks on `984c4ad`, tagged `sprint-1`. REL-01 (#17) tracks the remaining report and submission checks.
 
 ## Version history
 
@@ -102,3 +100,4 @@ The [staging acceptance record](staging-acceptance.md) contains the November 9 c
 | 0.6 | 2026-11-08 | Tanadet Nuchaikaew | Recorded the orange-palette UI review rerun and refreshed evidence while preserving the final-candidate release gate. |
 | 0.7 | 2026-11-08 | Tanadet Nuchaikaew | Recorded BUG-01 development-routing reproduction, regression coverage and branch verification without closing QA-01. |
 | 0.8 | 2026-11-09 | Tanadet Nuchaikaew | Recorded clean staging setup, integrated test execution and Part F demonstrations for QA-01 peer review. |
+| 0.9 | 2026-11-09 | Tanadet Nuchaikaew | Linked the verified main release and closed QA-01 evidence. |

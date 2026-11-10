@@ -1,6 +1,6 @@
 # Sprint 1 staging acceptance
 
-QA-01 (#16) ran on November 9, 2026 in a fresh clone of `sprint-1-staging` at `f2c1689c688f5612d577375db4d95c133eec5dfd`. This commit includes the accepted UI-01 work from PR #23 and the Vite development fix from PR #25. The final release record will identify the immutable commit or tag on `main`.
+QA-01 (#16) ran on November 9, 2026 in a fresh clone of `sprint-1-staging` at `f2c1689c688f5612d577375db4d95c133eec5dfd`. This commit includes UI-01 from PR #23 and the Vite development fix from PR #25. Chessuker approved and merged the acceptance record in PR #26. The [sprint-1 tag](https://github.com/Kawi-HBLI/NutGPUHub/tree/sprint-1) identifies the verified release on `main`.
 
 ## Clean setup and execution
 
@@ -17,7 +17,7 @@ The [AC-to-test matrix](verification.md#ac-to-test-mapping) maps the actual asse
 
 ## Part F demonstrations
 
-All demonstrations use machine `E2E-701859d3` and synthetic accounts. The selected slot starts on November 10, 2026 at 10:00 Bangkok time. The built app used the isolated test database. The cited ACs identify the demonstrated aspects of each criterion. The automated assertions cover additional cases listed in the verification matrix. Full output and original captures remain local under `evidence/qa-final-f2c1689/`.
+All demonstrations use the synthetic E2E fixtures, including machine `E2E-701859d3` and account `e2e-student-a-701859d3`. These fixtures are separate from the local seed accounts and machines such as `student-a` and `GPU-01`. The selected slot starts on November 10, 2026 at 10:00 Bangkok time. The built app used the isolated test database. The cited ACs identify the demonstrated aspects of each criterion. The automated assertions cover additional cases in the verification matrix. Full output and original captures remain local under `evidence/qa-final-f2c1689/`.
 
 1. **Open, book and retrieve (F-02/F-03/F-04, AC-01, AC-14, AC-18).** The assigned operator opens the 10:00–11:00 slot. Student A signs in, selects the date and books it. The expected result is a single reservation readable by the student and assigned operator. The API returned `201`, PostgreSQL had one booking for slot 31 owned by Student A and the booking appeared after reload. The operator schedule showed who booked it. The automated suite separately covers consecutive slot creation and duplicate rejection under AC-04 and process restart under AC-15.
 
@@ -32,6 +32,16 @@ All demonstrations use machine `E2E-701859d3` and synthetic accounts. The select
    [Sign-in page after sign-out](images/qa-final/05-sign-out.png)
 
 4. **Forbidden slot creation (F-02, AC-08).** Student A has a valid student session and sends a valid future slot-opening request for the fixture machine. The expected result is a role denial without a new slot. `POST /api/v1/machines/8/slots` returned `403 FORBIDDEN` with “Your account cannot perform this operation.” The scoped PostgreSQL slot count was 1 before and 1 after the request.
+
+   Captured API response and database counts from `demonstrations.json`:
+
+   ```text
+   POST /api/v1/machines/8/slots
+   HTTP 403
+   {"error":{"code":"FORBIDDEN","message":"Your account cannot perform this operation."}}
+   Scoped slot count before: 1
+   Scoped slot count after:  1
+   ```
 
 No browser page errors were observed during these captures.
 
@@ -56,8 +66,28 @@ const asStudent = await openSlot(cookies.student, '2030-01-03T10:00:00+07:00').e
 expect(await slotCount('2030-01-03T00:00:00+07:00', '2030-01-04T00:00:00+07:00')).toBe(before);
 ```
 
-## Release boundary
+## Main release verification
+
+Kawi-HBLI approved and merged [PR #27](https://github.com/Kawi-HBLI/NutGPUHub/pull/27) into `main`. The `sprint-1` tag points to `984c4ad730ff9acc2af736f523cfc62a2ea52667`. Its runtime and test files match the verified staging candidate. The four checks below ran again on the tagged `main` commit on November 9, 2026 using the isolated PostgreSQL QA database.
+
+| Command | Result at `984c4ad` |
+|---|---|
+| `npm test` | 36 passed across 7 files, 0 failed, 0 skipped |
+| `npm run build` | Passed |
+| `npm run test:e2e` | 2 passed, 0 failed, 0 skipped |
+| `npm run verify:restart` | Passed. The original session retrieved the saved booking after a new server process started. |
+
+Raw release logs are retained locally under `evidence/main-984c4ad/`.
+
+## Release limitations
 
 `npm audit` on the installed lockfile reported eight entries across development and runtime packages (five moderate, one high and two critical). `npm audit --omit=dev` reported two moderate entries, `express` and `qs`. The recorded QA run is a local functional acceptance check. The dependency findings remain open for triage. UI-01 accessibility and layout evidence is in the [UI verification record](ui-verification.md).
 
-The evidence PR requires peer approval before QA-01 closes. REL-01 (#17) records the reviewed `main` integration, checks its runtime and test tree against the verified candidate, completes the private PDF and records the submission.
+REL-01 (#17) tracks completion of the private PDF and submission confirmation. The [submission checklist](submission-checklist.md) records the remaining items.
+
+## Version history
+
+| Version | Date | Author | Change |
+|---|---|---|---|
+| 0.1 | 2026-11-09 | Tanadet Nuchaikaew | Recorded clean staging acceptance and captioned demonstration evidence in PR #26. |
+| 0.2 | 2026-11-09 | Tanadet Nuchaikaew | Added the captured AC-08 response, clarified the test fixtures, and recorded the verified main release. |
