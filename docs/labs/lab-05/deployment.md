@@ -1,6 +1,6 @@
 # Lab 5 Deployment
 
-Status: first version (Lab5-2). Sections marked *Pending* are filled in by later Lab 5 Issues.
+Status: updated in Lab5-4 (CI). Sections marked *Pending* are filled in by later Lab 5 Issues.
 
 ## Stack
 
@@ -125,7 +125,35 @@ Local result (Lab5-3, Docker 28.0.1): the image built (502 MB); `migrate` applie
 
 ## CI and the merge gate
 
-*Pending (Lab5-4, Lab5-6).*
+Workflow: `.github/workflows/ci-docker.yml`, check name **CI & Docker Build / test-and-docker** (Lab5-4). It never signs in to Google Cloud and never pushes an image.
+
+| Setting | Value | Reason |
+|---|---|---|
+| Triggers | `pull_request` into `main` or any `*-staging` branch; `workflow_dispatch`; `workflow_call` | Every change is checked on its PR into the staging branch (for example `lab-5-staging`) and again on the release PR into `main`. The deploy workflow (Lab5-7) calls the same job before it deploys. |
+| Job id | `test-and-docker` | The merge gate (Lab5-6) requires this check by name. |
+| Permissions | `contents: read` | The workflow cannot change the repository. |
+| Concurrency | one run per ref, older run cancelled | A new push replaces the running check; a cancelled run is not a failure. |
+| Actions | pinned to full commit SHAs (`actions/checkout` v7.0.1, `actions/setup-node` v7.1.0, `actions/upload-artifact` v7.0.2) | A moved tag cannot change what runs. |
+| Database | `postgres:16-alpine` service with throw-away CI credentials; `nutgpuhub` for migrations and the seed, `nutgpuhub_test` for the tests | The tests refuse to run unless `TEST_DATABASE_URL` differs from `DATABASE_URL`. `prisma migrate deploy` creates the test database. |
+| `DEMO_PASSWORD` | random per run (`openssl rand -hex 16`), masked in the log | No password is stored in the repository or in GitHub settings for CI. |
+
+Steps of `test-and-docker`, in order (a failing step fails the check):
+
+1. `npm ci` and `prisma generate` on Node.js 24.
+2. `prisma migrate deploy` on both databases.
+3. The seed twice, because the release job reruns it on every deploy.
+4. `npm run build` (server and client).
+5. `npm test`: Vitest unit, API and integration tests (TC-AUTH, TC-SLOT, TC-BOOK, TC-OPS and others).
+6. `npx playwright test`: browser journeys TC-E2E-01 and TC-E2E-02 against the built app.
+7. `npm run verify:restart`: TC-PERSIST-01, a booking survives a restart of the Node process.
+8. `docker build` of the root `Dockerfile` that Cloud Run uses.
+9. A test summary on the run page (`scripts/ci-test-summary.mjs`): passed, failed and skipped per test file, the restart check, the Docker build and the tested commit. If a step fails, Playwright traces are uploaded as the `playwright-test-results` artifact for 7 days.
+
+Differences from the kit's `ci-docker.yml`: one npm package instead of `server/` and `client/` steps; a second database for the tests; Playwright and the restart check added; the image tag is `nutgpuhub:ci-<sha>`. The kit's deploy-script check (`deploy/` tests) is added in Lab5-5 together with the `deploy/` folder.
+
+Local result before the first push (Lab5-4): the same commands in a `node:24-bookworm-slim` container with `postgres:16-alpine` migrated both databases, seeded twice ("Prepared 4 demo accounts and 2 GPU machines." both times), built, passed Vitest 40/40 in 8 files and passed the restart check; Playwright passed 2/2. CI evidence (C-01): *the run link and summary are added from the Lab5-4 Pull Request.*
+
+Merge gate (required check on `main`): *Pending (Lab5-6).*
 
 ## Release procedure and running commit
 
