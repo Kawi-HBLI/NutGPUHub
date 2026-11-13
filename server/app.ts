@@ -30,6 +30,23 @@ export function createApp(
   };
 
   app.disable('x-powered-by');
+
+  // Liveness: the process is up. Does not touch the database.
+  app.get('/api/health', (_request, response) => {
+    response.set('Cache-Control', 'no-store').json({ status: 'ok' });
+  });
+
+  // Readiness: the database answers. 503 lets Cloud Run checks and the smoke test see a broken connection.
+  app.get('/api/ready', async (_request, response) => {
+    response.set('Cache-Control', 'no-store');
+    try {
+      await database.$queryRaw`SELECT 1`;
+      response.json({ status: 'ready', db: 'connected' });
+    } catch {
+      response.status(503).json({ status: 'not_ready', db: 'unavailable' });
+    }
+  });
+
   api.use((request, response, next) => {
     response.set('Cache-Control', 'no-store');
     if (request.method !== 'GET' && request.method !== 'HEAD' && request.get('origin') !== appOrigin) {
