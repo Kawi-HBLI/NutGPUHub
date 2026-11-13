@@ -44,6 +44,8 @@ Only placeholders are committed (`.env.example`). `.env` is in `.gitignore`.
 | `PORT` | HTTP port | No | `.env` (`3000`) | Set by Cloud Run (`3000`) |
 | `HOST` | Bind address; default `127.0.0.1` | No | Not set | Container image sets `0.0.0.0` |
 | `NODE_ENV` | Runtime mode; the app code does not branch on it | No | Not set | `production` in the image and on Cloud Run |
+| `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB` | Docker Compose only: the local database container and the `DATABASE_URL` built from it | Local only | Fallbacks in `docker-compose.yml`, or your `.env` | Not used (Cloud SQL and Secret Manager) |
+| `APP_PORT` | Docker Compose only: host port for the app (default `3000`); `APP_ORIGIN` follows it | No | Optional in `.env` | Not used |
 
 ## Commands
 
@@ -80,7 +82,42 @@ curl --fail http://localhost:3000/api/health
 curl --fail http://localhost:3000/api/ready
 ```
 
-Docker and Docker Compose commands: *Pending (Lab5-3).*
+## Docker
+
+Files: `Dockerfile`, `.dockerignore`, `docker-compose.yml` at the repository root.
+
+| Decision | Reason |
+|---|---|
+| One root `Dockerfile`, two stages (`build`, `production`) | NutGPUHub is one npm package. The kit's `client/Dockerfile`, `server/Dockerfile`, `client/nginx.conf` and `server/docker-entrypoint.sh` are not used: Express serves the built UI, and `CMD ["node", "dist/server/index.js"]` makes node PID 1 so it receives SIGTERM without an entrypoint script. |
+| Base image `node:24-bookworm-slim` + `openssl` | Debian (glibc) lets `argon2` install its prebuilt binary and lets Prisma find OpenSSL 3 without extra binary targets. |
+| `prisma` and `tsx` are runtime dependencies | The same image runs the migration job (`prisma migrate deploy`) and the TypeScript seed (`tsx`). Development tools (Vite, Vitest, Playwright, TypeScript) are pruned from the final image. |
+| Runtime contents | `dist/` (server and UI), `prisma/` (schema, migrations, seed), `server/password.ts` (imported by the seed), production `node_modules`. |
+| `ENV NODE_ENV=production HOST=0.0.0.0 PORT=3000`, `USER node` | Listens on all interfaces at `$PORT` as required by Cloud Run, and does not run as root. No secret is set in the image. |
+| `.dockerignore` | Excludes `.git`, `node_modules`, `dist`, `.env*` (except `.env.example`), credentials files, docs and tests. |
+
+Compose services:
+
+| Service | What it does |
+|---|---|
+| `db` | PostgreSQL 16 with the named volume `postgres_data`, so data survives `down`/`up`. Not published on a host port. |
+| `migrate` | Same image; runs `npx prisma migrate deploy && npm run db:seed`, then exits 0. Needs `DEMO_PASSWORD`. |
+| `app` | Same image on `http://localhost:3000` (`APP_PORT` changes the host port). Starts after `migrate` succeeds; health check calls `/api/ready`. |
+
+`DEMO_PASSWORD` is read from your shell or your local `.env` (never written in the Compose file). The local PostgreSQL password has a fallback (`POSTGRES_PASSWORD`, default for this local-only database); the cloud uses Secret Manager. Open the app at exactly `http://localhost:3000`; `http://127.0.0.1:3000` is a different origin and sign-in would return 403.
+
+```bash
+docker compose up --build -d
+docker compose ps -a
+curl --fail http://localhost:3000/api/health
+curl --fail http://localhost:3000/api/ready
+docker compose down
+docker compose up -d
+docker compose down -v
+```
+
+On Windows PowerShell use `curl.exe`. `docker compose down -v` also deletes the database volume.
+
+Local result (Lab5-3, Docker 28.0.1): the image built (502 MB); `migrate` applied 4 migrations, prepared 4 demo accounts and 2 GPU machines and exited 0; `app` became healthy and ran as `uid=1000(node)`; `/api/health` and `/api/ready` returned 200 and `/` returned 200. An operator opened a GPU-01 slot and `student-a` booked it through the API. After `docker compose down` and `docker compose up -d`, the same session cookie still returned 200 on `/api/v1/auth/me` and My Bookings still contained the booking. A POST with `Origin: http://127.0.0.1:3000` returned 403 `INVALID_ORIGIN`, and `migrate` without `DEMO_PASSWORD` stopped with the seed's error message.
 
 ## GCP project and resources
 
