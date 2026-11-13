@@ -131,6 +131,7 @@ Workflow: `.github/workflows/ci-docker.yml`, check name **CI & Docker Build / te
 |---|---|---|
 | Triggers | `pull_request` into `main` or any `*-staging` branch; `workflow_dispatch`; `workflow_call` | Every change is checked on its PR into the staging branch (for example `lab-5-staging`) and again on the release PR into `main`. The deploy workflow (Lab5-7) calls the same job before it deploys. |
 | Job id | `test-and-docker` | The merge gate (Lab5-6) requires this check by name. |
+| Runner | `ubuntu-24.04` (not `ubuntu-latest`) | `ubuntu-latest` became Ubuntu 26.04 in October 2026. Playwright 1.59 supports Ubuntu up to 24.04, so the first run failed at "Install Chromium for Playwright" in 0 seconds ([run #1](https://github.com/Kawi-HBLI/NutGPUHub/actions/runs/43468192530/job/132032857719)). A pinned runner also keeps CI the same between runs. |
 | Permissions | `contents: read` | The workflow cannot change the repository. |
 | Concurrency | one run per ref, older run cancelled | A new push replaces the running check; a cancelled run is not a failure. |
 | Actions | pinned to full commit SHAs (`actions/checkout` v7.0.1, `actions/setup-node` v7.1.0, `actions/upload-artifact` v7.0.2) | A moved tag cannot change what runs. |

@@ -29,7 +29,9 @@ concurrency:
 
 jobs:
   test-and-docker:
-    runs-on: ubuntu-latest
+    # Pinned: ubuntu-latest moved to Ubuntu 26.04 (Oct 2026), which Playwright 1.59
+    # does not support yet ("does not support chromium on ubuntu26.04-x64").
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
 
     # Throw-away PostgreSQL for this job only. These are not real secrets.
