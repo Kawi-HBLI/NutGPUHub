@@ -152,7 +152,7 @@ Steps of `test-and-docker`, in order (a failing step fails the check):
 
 Differences from the kit's `ci-docker.yml`: one npm package instead of `server/` and `client/` steps; a second database for the tests; Playwright and the restart check added; the image tag is `nutgpuhub:ci-<sha>`. The kit's deploy-script check (`deploy/` tests) is added in Lab5-5 together with the `deploy/` folder.
 
-Local result before the first push (Lab5-4): the same commands in a `node:24-bookworm-slim` container with `postgres:16-alpine` migrated both databases, seeded twice ("Prepared 4 demo accounts and 2 GPU machines." both times), built, passed Vitest 40/40 in 8 files and passed the restart check; Playwright passed 2/2. CI evidence (C-01): *the run link and summary are added from the Lab5-4 Pull Request.*
+Local result before the first push (Lab5-4): the same commands in a `node:24-bookworm-slim` container with `postgres:16-alpine` migrated both databases, seeded twice ("Prepared 4 demo accounts and 2 GPU machines." both times), built, passed Vitest 40/40 in 8 files and passed the restart check; Playwright passed 2/2. CI evidence (C-01): [run #2](https://github.com/Kawi-HBLI/NutGPUHub/actions/runs/43468965780/job/132035501311) on PR #41 (`ci/33-pr-checks` → `lab-5-staging`), commit `d1a12c7`, runner `ubuntu-24.04`, 1 min 48 s. Every step passed: migrations, seed twice, build, Vitest (40 tests in 8 files), Playwright (TC-E2E-01, TC-E2E-02), restart check (TC-PERSIST-01) and the Docker build. The job's Summary tab shows the per-file test table.
 
 Merge gate (required check on `main`): *Pending (Lab5-6).*
 
