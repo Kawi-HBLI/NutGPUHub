@@ -26,7 +26,7 @@ Reference stack for the cloud: Artifact Registry, Cloud Run, Cloud SQL for Postg
 | 3 | No development shortcuts | No role picker and no default password on the sign-in page. The Vite proxy exists only in `npm run dev:web`. |
 | 4 | Sessions are stored in the database | `sessions` table (`server/session.ts`); a new instance or a redeploy keeps every session. |
 | 5 | The server reads its port from `PORT` | `PORT` is read in `server/index.ts`. The bind address is `HOST`, default `127.0.0.1` for local safety; the container image sets `HOST=0.0.0.0` so Cloud Run can reach it. |
-| 6 | `/api/ready` exists | Added in Lab5-2: `/api/health` returns `{"status":"ok"}` without the database; `/api/ready` runs `SELECT 1` and returns `{"status":"ready","db":"connected"}`, or 503 `{"status":"not_ready","db":"unavailable"}`. Tests TC-OPS-01 to TC-OPS-04 in `tests/cloud-ready.test.ts`. |
+| 6 | `/api/ready` exists | Added in Lab5-2. Startup needs the database: `server/index.ts` connects (`database.$connect()`) before it listens and exits if that fails, so a revision without a database never becomes ready. After the server has started, `/api/health` returns `{"status":"ok"}` without querying the database, and `/api/ready` runs `SELECT 1` and returns `{"status":"ready","db":"connected"}`, or 503 `{"status":"not_ready","db":"unavailable"}` if the database is lost later. Tests TC-OPS-01 to TC-OPS-04 in `tests/cloud-ready.test.ts` call `createApp` directly; the 503 after the database stops was also checked against the running built server. |
 
 ## Environment variables
 
