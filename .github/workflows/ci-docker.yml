@@ -1,0 +1,135 @@
+# CI & Docker Build (Lab 5, Student Guide Episode 4), adapted from the Lab 5 starter kit.
+#
+# Runs on every Pull Request into main or a *-staging branch, from the Actions tab
+# (workflow_dispatch), and from the deploy workflow (workflow_call, Lab5-7) so a
+# release is tested again before it is deployed. It never signs in to Google Cloud
+# and never pushes the image.
+#
+# Keep the job id `test-and-docker`: the merge gate (Lab5-6) requires it by name.
+#
+# Differences from the kit: NutGPUHub is one npm package (no client/ and server/
+# folders), the tests need a second database (TEST_DATABASE_URL), and the job also
+# runs the Playwright journeys and the process-restart check. The deploy-script
+# check uses the system python3 instead of a setup-python step.
+
+name: CI & Docker Build
+
+on:
+  workflow_call:
+  pull_request:
+    branches: [main, '*-staging']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test-and-docker:
+    # Pinned: ubuntu-latest moved to Ubuntu 26.04 (Oct 2026), which Playwright 1.59
+    # does not support yet ("does not support chromium on ubuntu26.04-x64").
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+
+    # Throw-away PostgreSQL for this job only. These are not real secrets.
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: nutgpuhub
+          POSTGRES_PASSWORD: nutgpuhub-ci
+          POSTGRES_DB: nutgpuhub
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql://nutgpuhub:nutgpuhub-ci@localhost:5432/nutgpuhub?schema=public
+      TEST_DATABASE_URL: postgresql://nutgpuhub:nutgpuhub-ci@localhost:5432/nutgpuhub_test?schema=public
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # Offline checks of the deploy scripts: fake gcloud, no Google Cloud access.
+      - name: Check deployment scripts without accessing GCP
+        run: |
+          for script in deploy/*.sh; do bash -n "$script"; done
+          bash deploy/tests/test_deploy_stub.sh
+          bash deploy/tests/test_release_stub.sh
+          bash deploy/tests/test_setup_github_stub.sh
+          python3 -m unittest discover -s deploy/tests -p 'test_smoke.py' -v
+
+      - name: Set up Node.js 24
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24'
+          cache: npm
+
+      - name: Install dependencies
+        run: |
+          npm ci
+          npm run db:generate
+
+      # `prisma migrate deploy` creates nutgpuhub_test on the same server if it does not exist.
+      - name: Apply migrations to the app and test databases
+        run: |
+          npm run db:migrate
+          DATABASE_URL="$TEST_DATABASE_URL" npm run db:migrate
+
+      # The release job reruns the seed on every deploy, so it must succeed twice.
+      - name: Seed the demo accounts twice
+        run: |
+          DEMO_PASSWORD="$(openssl rand -hex 16)"
+          echo "::add-mask::$DEMO_PASSWORD"
+          export DEMO_PASSWORD
+          npm run db:seed
+          npm run db:seed
+
+      - name: Build server and client
+        run: npm run build
+
+      - name: Unit and API tests (Vitest)
+        run: npm test -- --reporter=default --reporter=json --outputFile.json="$RUNNER_TEMP/vitest.json"
+
+      - name: Install Chromium for Playwright
+        run: npx playwright install --with-deps chromium
+
+      - name: Browser journeys (Playwright)
+        env:
+          PLAYWRIGHT_JSON_OUTPUT_NAME: ${{ runner.temp }}/playwright.json
+        run: npx playwright test --reporter=list,json
+
+      - name: Process restart check (TC-PERSIST-01)
+        id: restart
+        run: npm run verify:restart
+
+      # Builds the same root Dockerfile that Cloud Run uses. The image is not pushed.
+      - name: Verify the production Docker image builds
+        id: docker
+        run: docker build --tag "nutgpuhub:ci-${GITHUB_SHA}" .
+
+      - name: Test summary
+        if: ${{ !cancelled() }}
+        env:
+          RESTART_OUTCOME: ${{ steps.restart.outcome }}
+          DOCKER_OUTCOME: ${{ steps.docker.outcome }}
+        run: node scripts/ci-test-summary.mjs "$RUNNER_TEMP/vitest.json" "$RUNNER_TEMP/playwright.json" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload Playwright traces
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: playwright-test-results
+          path: test-results/
+          retention-days: 7
+          if-no-files-found: ignore

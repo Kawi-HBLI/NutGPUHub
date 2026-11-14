@@ -6,6 +6,10 @@ dist/
 coverage/
 playwright-report/
 test-results/
+__pycache__/
+
+# Short-lived Google credentials written by the GitHub Actions auth step
+gha-creds-*.json
 
 # Local test evidence for the PDF report (not committed)
 evidence/
