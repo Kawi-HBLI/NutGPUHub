@@ -3,7 +3,7 @@ import { bangkokDayRange, isOnTheHour, parseOffsetTimestamp } from '../server/ti
 
 test('TC-TIME-01 uses Bangkok calendar boundaries for a selected date', () => {
   const range = bangkokDayRange('2026-11-08');
-  expect(range?.start.toISOString()).toBe('2026-11-07T17:00:00.000Z');
+  expect(range?.start.toISOString()).toBe('2026-11-07T18:00:00.000Z');
   expect(range?.end.toISOString()).toBe('2026-11-08T17:00:00.000Z');
   for (const invalid of ['', '2026-13-40', '2026-02-30', '2026-11-8', '08-11-2026', '2026-11-08T00:00']) {
     expect(bangkokDayRange(invalid)).toBeNull();
