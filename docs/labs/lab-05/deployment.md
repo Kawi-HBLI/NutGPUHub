@@ -1,13 +1,13 @@
 # Lab 5 Deployment
 
-Status: updated in Lab5-7 (deploy pipeline). Sections marked *Pending* are filled in by later Lab 5 Issues.
+Status: updated after the Lab5-7 releases. Sections marked *Pending* are filled in by later Lab 5 Issues.
 
 ## Stack
 
 | Layer | NutGPUHub | Change from the reference kit (TokTickIT) |
 |---|---|---|
 | Runtime | Node.js 24, one npm package at the repository root | The kit has separate `client/` and `server/` packages. We build one image from the root. |
-| API | Express 4 (`server/`), JSON under `/api/v1`, plus `/api/health` and `/api/ready` | Same idea; our API is versioned under `/api/v1`. |
+| API | Express 4 (`server/`), JSON under `/api/v1`, plus `/api/health`, `/api/ready` and `/api/version` (running commit, Lab5-7) | Same idea; our API is versioned under `/api/v1`. |
 | UI | React 18 + Vite 6 (`client/`), built to `dist/client` and served by Express | No nginx container; Express serves the built UI on the same origin. |
 | Database | PostgreSQL with Prisma 5.22 migrations (`prisma/`) | Same. |
 | Passwords | Argon2id (`argon2`, native module) | The image must install `argon2` for Linux inside the build (never copy `node_modules` from a laptop). |
@@ -283,6 +283,7 @@ Release procedure (repeat for every release):
 
 Which commit is running (any of these):
 
+- The footer of the public page: "Release <first 7 characters>", linked to the commit; or `GET /api/version` (Issue #50).
 - Cloud Run → `nutgpuhub` → Revision history: the revision with 100% traffic → Containers → env `APP_COMMIT`.
 - The **Deploy demo** run summary: commit, image digest and revision; the digest equals the revision's image digest.
 - `gcloud run services describe nutgpuhub --region asia-southeast1 --format='value(spec.template.spec.containers[0].image)'` gives the digest; Artifact Registry shows the commit tag on that digest.
@@ -291,4 +292,19 @@ The first deployment (`deploy.sh`, revision `nutgpuhub-00001-np8`) has no `APP_C
 
 Rollback: Actions → **Deploy demo** → Run workflow on `main` with `image_tag` = the full SHA of an earlier released commit. No tests, build, migration or seed run; the service is pointed at that image's digest. Only images that were built by an earlier release exist.
 
-Results: *Pending (Lab5-7): first pipeline run, the visible change (second release), Console checks of guide 7.6.*
+### Pipeline results (Lab5-7, 14 Nov 2026)
+
+Every deployment after the first one was started only by merging a release PR into `main`; nobody typed a deploy command.
+
+| Release PR | Merge commit (image tag) | Deploy demo run | Revision | Result |
+|---|---|---|---|---|
+| #49 (pipeline itself, records) | `12fac766b53b699688c49d7b26fe10af555ecd9e` | [#1](https://github.com/Kawi-HBLI/NutGPUHub/actions/runs/43600288093): test 1 min 48 s, deploy 2 min 2 s | `nutgpuhub-00002-pgt` | All steps green, including keyless sign-in to Google Cloud and the smoke test |
+| #53 (visible change, Issue #50 via PR #52) | `6604c5e2102a23a348de0dc1f9ce97908a00372d` | [#2](https://github.com/Kawi-HBLI/NutGPUHub/actions/runs/43609341405): 4 min 2 s in total | `nutgpuhub-00003-8c8` | All steps green; test summary 43 passed, 0 failed (Vitest 41, Playwright 2), restart check and Docker build success |
+
+Checks for release #53 (guide 7.5–7.7, screenshots in the PDF):
+
+- Run summary: commit `6604c5e…`, image digest `…/nutgpuhub/nutgpuhub@sha256:c755ce9ac3f1bfc3913acd0cef81a74f511c3d509972cde0e45b613c8c8b758c`, revision `nutgpuhub-00003-8c8`, rollback false, URL.
+- Cloud Run revision history: `nutgpuhub-00003-8c8` has 100% traffic (00002 and 00001 at 0%), "Deployed by nutgpuhub-deployer@…", env `APP_COMMIT=6604c5e2102a23a348de0dc1f9ce97908a00372d`.
+- Cloud Run job `nutgpuhub-migrate`: execution `nutgpuhub-migrate-qmvlc` (10:20 PM) succeeded, executed by `nutgpuhub-deployer`; three executions in total (first deployment and both releases), all succeeded.
+- Artifact Registry `nutgpuhub/nutgpuhub`: three images tagged `6604c5e…` (digest `c755ce9ac3f1`, the same as the run summary), `12fac76…` and `0a979d7…`.
+- Public URL after Ctrl+F5: the footer reads "NutGPUHub · University GPU reservations · Asia/Bangkok · **Release 6604c5e**", and `GET /api/version` returns `{"commit":"6604c5e2102a23a348de0dc1f9ce97908a00372d"}`, the release merge commit.
