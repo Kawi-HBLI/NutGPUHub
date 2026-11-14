@@ -1,6 +1,6 @@
 # Lab 5 Deployment
 
-Status: updated after the Lab5-7 releases. Sections marked *Pending* are filled in by later Lab 5 Issues.
+Status: updated after the Lab5-8 persistence check. Sections marked *Pending* are filled in by later Lab 5 Issues.
 
 ## Stack
 
@@ -308,3 +308,18 @@ Checks for release #53 (guide 7.5–7.7, screenshots in the PDF):
 - Cloud Run job `nutgpuhub-migrate`: execution `nutgpuhub-migrate-qmvlc` (10:20 PM) succeeded, executed by `nutgpuhub-deployer`; three executions in total (first deployment and both releases), all succeeded.
 - Artifact Registry `nutgpuhub/nutgpuhub`: three images tagged `6604c5e…` (digest `c755ce9ac3f1`, the same as the run summary), `12fac76…` and `0a979d7…`.
 - Public URL after Ctrl+F5: the footer reads "NutGPUHub · University GPU reservations · Asia/Bangkok · **Release 6604c5e**", and `GET /api/version` returns `{"commit":"6604c5e2102a23a348de0dc1f9ce97908a00372d"}`, the release merge commit.
+
+## Persistence, rollback and roll forward (Lab5-8, C-05)
+
+All application data lives in Cloud SQL: users, sessions, machines, slots and bookings. The container keeps nothing (no uploads; checklist row 1). A rollback changes only the image, not the database.
+
+Test record: `operator-a` opened GPU-01 on 2026-11-16, 10:00–11:00, and `student-a` booked it as **Saved booking #2** on the public URL. Booking #1 (GPU-01, 2026-11-15, 09:00–10:00) had been created at the first deployment (revision 00001). The same browser tab stayed signed in as `student-a` for the whole test (about 25 minutes, within the 60-minute session).
+
+| Step | How | Revision (100% traffic) | Commit (`APP_COMMIT`) | After Ctrl+F5 |
+|---|---|---|---|---|
+| Before | — | `nutgpuhub-00003-8c8` | `6604c5e…` (release B) | Signed in; bookings #1 and #2 listed; footer "Release 6604c5e" |
+| Restart | Console → Cloud Run → `nutgpuhub` → Redeploy, no changes (new revision, same image) | `nutgpuhub-00004-jfx` | `6604c5e…` | Still signed in; bookings #1 and #2 unchanged; footer "Release 6604c5e" |
+| Rollback to release A | Actions → Deploy demo → Run workflow, `image_tag=12fac766b53b699688c49d7b26fe10af555ecd9e` ([run #3](https://github.com/Kawi-HBLI/NutGPUHub/actions/runs/43613615624)): `test` skipped, no build, no migration, `deploy` green in 43 s, summary "Rollback: true", digest `sha256:7c513eb78377…` | `nutgpuhub-00005-dkh`, deployed by `nutgpuhub-deployer` | `12fac76…` | Still signed in; bookings #1 and #2 unchanged; footer without "Release" (release A predates it); `/api/version` returned 404 |
+| Roll forward to release B | Run workflow, `image_tag=6604c5e2102a23a348de0dc1f9ce97908a00372d` ([run #4](https://github.com/Kawi-HBLI/NutGPUHub/actions/runs/43614604024)): `test` skipped, `deploy` green in 40 s, "Rollback: true", digest `sha256:c755ce9ac3f1…` (the same image as release B) | `nutgpuhub-00006-z4r`, deployed by `nutgpuhub-deployer` | `6604c5e…` | Still signed in; bookings #1 and #2 unchanged; footer "Release 6604c5e" again; `/api/version` returns `6604c5e…` |
+
+Result: the record created before the restart was still there after the restart, the rollback and the roll forward, and so was the session (stored in the `sessions` table). Booking #1 has now survived five revision changes since the first deployment. Screenshots 01–09 (URL, revision and commit visible) are in the PDF.
