@@ -16,7 +16,10 @@ if (cookieSecure !== undefined && cookieSecure !== 'true' && cookieSecure !== 'f
 }
 
 const database = new PrismaClient();
-const app = createApp(database, appUrl.origin, { secureCookie: appUrl.protocol === 'https:' || cookieSecure === 'true' });
+const app = createApp(database, appUrl.origin, {
+  secureCookie: appUrl.protocol === 'https:' || cookieSecure === 'true',
+  commit: process.env.APP_COMMIT,
+});
 app.use(express.static(resolve('dist/client')));
 await database.$connect();
 
