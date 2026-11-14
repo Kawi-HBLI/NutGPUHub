@@ -1,7 +1,10 @@
 #!/usr/bin/env bash
 # ==============================================================================
 # NutGPUHub — release.sh (used by .github/workflows/deploy.yml, Lab5-7)
-# Adapted from the Lab 5 starter kit (TokTickIT): only the names changed.
+# Adapted from the Lab 5 starter kit (TokTickIT). Changes: the names; the revision
+# gets APP_COMMIT=<commit SHA> so the Console shows which commit runs; SERVICE_URL is
+# the service's APP_ORIGIN (the deterministic URL from deploy.sh), because sign-in
+# and the smoke test's origin check only work on that URL.
 # ==============================================================================
 # Updates resources that deploy/deploy.sh created. Never creates SQL, IAM or secrets.
 #   Normal release : find the image -> run the migration job -> update the service
@@ -39,11 +42,20 @@ else
   echo 'Rollback: reuse existing image; skip tests, build, migration and seed.'
 fi
 
-gcloud run services update "$SERVICE_NAME" --image="$DIGEST_IMAGE" --project="$PROJECT_ID" --region="$REGION" --quiet
+# The new revision records the commit it runs (Cloud Run > revision > Containers > env).
+gcloud run services update "$SERVICE_NAME" --image="$DIGEST_IMAGE" --update-env-vars="APP_COMMIT=$IMAGE_TAG" --project="$PROJECT_ID" --region="$REGION" --quiet
 # Send 100% of traffic to the new latest revision even if traffic was pinned before.
 gcloud run services update-traffic "$SERVICE_NAME" --to-latest --project="$PROJECT_ID" --region="$REGION" --quiet
 
-SERVICE_URL="$(gcloud run services describe "$SERVICE_NAME" --project="$PROJECT_ID" --region="$REGION" --format='value(status.url)')"
+# Report the URL users open: APP_ORIGIN of the service (falls back to status.url).
+SERVICE_URL="$(gcloud run services describe "$SERVICE_NAME" --project="$PROJECT_ID" --region="$REGION" --format=json | python3 -c '
+import json, sys
+service = json.load(sys.stdin)
+env = service["spec"]["template"]["spec"]["containers"][0].get("env", [])
+origin = next((item.get("value", "") for item in env if item.get("name") == "APP_ORIGIN"), "")
+print(origin or service["status"]["url"])
+')"
+[[ "$SERVICE_URL" == https://* ]] || { echo 'Service URL not found.' >&2; exit 1; }
 echo "Service URL: $SERVICE_URL"
 if [[ -n "${GITHUB_ENV:-}" ]]; then
   printf 'SERVICE_URL=%s\nDEPLOYED_IMAGE=%s\n' "$SERVICE_URL" "$DIGEST_IMAGE" >> "$GITHUB_ENV"
