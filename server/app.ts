@@ -13,11 +13,14 @@ const sessionLifetime = sessionTtlMinutes * 60_000;
 export function createApp(
   database: PrismaClient,
   appOrigin: string,
-  { clock = Date.now, secureCookie = appOrigin.startsWith('https:') }: {
+  { clock = Date.now, secureCookie = appOrigin.startsWith('https:'), commit }: {
     clock?: () => number;
     secureCookie?: boolean;
+    /** Full commit SHA of the running release (APP_COMMIT on Cloud Run); anything else is reported as null. */
+    commit?: string;
   } = {},
 ) {
+  const releaseCommit = commit && /^[0-9a-f]{40}$/.test(commit) ? commit : null;
   const app = express();
   const api = express.Router();
   const auth = express.Router();
@@ -45,6 +48,11 @@ export function createApp(
     } catch {
       response.status(503).json({ status: 'not_ready', db: 'unavailable' });
     }
+  });
+
+  // Which commit is running (R-08). Public: the repository is public, and the SHA is not a secret.
+  app.get('/api/version', (_request, response) => {
+    response.set('Cache-Control', 'no-store').json({ commit: releaseCommit });
   });
 
   api.use((request, response, next) => {

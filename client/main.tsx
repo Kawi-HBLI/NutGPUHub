@@ -14,6 +14,7 @@ function App() {
   const [phase, setPhase] = useState<'checking' | 'ready' | 'unavailable'>('checking');
   const [pending, setPending] = useState(false);
   const [error, setError] = useState('');
+  const [commit, setCommit] = useState<string | null>(null);
 
   useEffect(() => {
     // A protected request that returns 401 means the one-hour session ended: go back to sign-in.
@@ -21,6 +22,16 @@ function App() {
       setAccount(null);
       setError('Your session has ended. Sign in again.');
     });
+  }, []);
+
+  useEffect(() => {
+    // The running release (commit SHA set by the deploy pipeline); local builds have none.
+    const controller = new AbortController();
+    fetch('/api/version', { signal: controller.signal })
+      .then(response => (response.ok ? response.json() : null))
+      .then(body => { if (typeof body?.commit === 'string') setCommit(body.commit); })
+      .catch(() => {});
+    return () => controller.abort();
   }, []);
 
   useEffect(() => {
@@ -130,7 +141,10 @@ function App() {
           </Card>
         </div>}
       </main>
-      <footer className="site-footer">NutGPUHub · University GPU reservations · Asia/Bangkok</footer>
+      <footer className="site-footer">
+        NutGPUHub · University GPU reservations · Asia/Bangkok
+        {commit && <> · <a href={`https://github.com/Kawi-HBLI/NutGPUHub/commit/${commit}`} title={commit}>Release {commit.slice(0, 7)}</a></>}
+      </footer>
     </>
   );
 }
