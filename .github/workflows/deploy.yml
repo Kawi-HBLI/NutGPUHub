@@ -1,0 +1,122 @@
+# Deploy demo (Lab 5, Student Guide Episode 7), adapted from the Lab 5 starter kit.
+#
+# A push to main (a merged release PR) runs the CI job again, then builds the image
+# tagged with the full commit SHA, pushes it, runs the migration job, points the
+# Cloud Run service at the image digest and smoke-tests the public URL.
+# Run workflow with image_tag = an earlier commit SHA rolls back to that image
+# (no tests, no build, no migration).
+#
+# Names that must match elsewhere (do not rename one without the others):
+#   - this file name `deploy.yml`, branch `main` and environment `demo`:
+#     the Workload Identity provider condition (deploy/setup-github-deploy.sh)
+#   - variables GCP_PROJECT_ID, GCP_REGION, WIF_PROVIDER, WIF_SERVICE_ACCOUNT
+#     (GitHub Settings > Environments > demo)
+#   - nutgpuhub / nutgpuhub-migrate and the image path nutgpuhub/nutgpuhub
+#     (deploy/deploy.sh, deploy/release.sh)
+#
+# Differences from the kit: names; ubuntu-24.04; the runner's python3 instead of a
+# setup-python step; the optional sign-in smoke check uses SMOKE_USERNAME (variable)
+# and SMOKE_PASSWORD (secret); the summary names the commit and the revision.
+
+name: Deploy demo
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: 'Rollback: full commit SHA of an existing image. Empty = test, build and deploy current main.'
+        type: string
+        required: false
+        default: ''
+
+permissions:
+  contents: read
+
+# Releases queue up; a running migration or deployment is never interrupted.
+concurrency:
+  group: deploy-demo
+  cancel-in-progress: false
+
+jobs:
+  # The same checks as on every PR (job test-and-docker). Skipped for a rollback.
+  test:
+    if: github.ref == 'refs/heads/main' && !inputs.image_tag
+    uses: ./.github/workflows/ci-docker.yml
+
+  deploy:
+    needs: test
+    if: >-
+      always() && !cancelled() && github.ref == 'refs/heads/main' &&
+      (needs.test.result == 'success' ||
+       (github.event_name == 'workflow_dispatch' && inputs.image_tag != '' && needs.test.result == 'skipped'))
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    environment: demo
+    permissions:
+      contents: read
+      id-token: write # keyless sign-in to Google Cloud (Workload Identity Federation)
+    env:
+      PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
+      REGION: ${{ vars.GCP_REGION }}
+      SERVICE_NAME: nutgpuhub
+      MIGRATE_JOB_NAME: nutgpuhub-migrate
+      IMAGE_TAG: ${{ inputs.image_tag || github.sha }}
+      ROLLBACK: ${{ inputs.image_tag != '' }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Validate deployment settings
+        env:
+          WIF_PROVIDER: ${{ vars.WIF_PROVIDER }}
+          WIF_SERVICE_ACCOUNT: ${{ vars.WIF_SERVICE_ACCOUNT }}
+        run: |
+          test -n "$PROJECT_ID" && test -n "$REGION" || { echo 'Set GCP_PROJECT_ID and GCP_REGION in environment demo.'; exit 1; }
+          test -n "$WIF_PROVIDER" && test -n "$WIF_SERVICE_ACCOUNT" || { echo 'Set WIF_PROVIDER and WIF_SERVICE_ACCOUNT in environment demo.'; exit 1; }
+          [[ "$IMAGE_TAG" =~ ^[0-9a-f]{40}$ ]] || { echo 'Image tag must be a full 40-character commit SHA.'; exit 1; }
+
+      - name: Authenticate to Google Cloud without a key
+        uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3
+        with:
+          workload_identity_provider: ${{ vars.WIF_PROVIDER }}
+          service_account: ${{ vars.WIF_SERVICE_ACCOUNT }}
+
+      - name: Set up gcloud
+        uses: google-github-actions/setup-gcloud@aa5489c8933f4cc7a4f7d45035b3b1440c9c10db # v3.0.1
+
+      - name: Build and push image
+        if: env.ROLLBACK != 'true'
+        run: |
+          gcloud auth configure-docker "$REGION-docker.pkg.dev" --quiet
+          IMAGE="$REGION-docker.pkg.dev/$PROJECT_ID/nutgpuhub/nutgpuhub:$IMAGE_TAG"
+          docker build --tag "$IMAGE" .
+          docker push "$IMAGE"
+
+      # Image digest -> migration job (normal release) -> service; exports SERVICE_URL and DEPLOYED_IMAGE.
+      - name: Verify image, migrate and deploy
+        run: bash deploy/release.sh
+
+      - name: Smoke test public URL
+        env:
+          # Optional sign-in check: set both (variable + secret) or neither.
+          SMOKE_USERNAME: ${{ vars.SMOKE_USERNAME }}
+          SMOKE_PASSWORD: ${{ secrets.SMOKE_PASSWORD }}
+        run: python3 deploy/smoke_test.py "$SERVICE_URL"
+
+      - name: Record deployment
+        if: ${{ !cancelled() }}
+        run: |
+          REVISION="$(gcloud run services describe "$SERVICE_NAME" --project="$PROJECT_ID" --region="$REGION" --format='value(status.latestReadyRevisionName)' || true)"
+          {
+            echo '### NutGPUHub demo deployment'
+            echo "- Commit (image tag): \`$IMAGE_TAG\`"
+            echo "- Image digest: \`${DEPLOYED_IMAGE:-not deployed}\`"
+            echo "- Cloud Run revision: \`${REVISION:-unknown}\` (env \`APP_COMMIT\` = the commit above)"
+            echo "- Rollback: $ROLLBACK"
+            echo "- URL: ${SERVICE_URL:-not deployed}"
+            echo "- Job result so far: ${{ job.status }} (smoke test: health, ready, page, origin checks; sign-in only if configured)"
+          } >> "$GITHUB_STEP_SUMMARY"

@@ -1,6 +1,6 @@
 # Lab 5 Deployment
 
-Status: updated after the first deployment (Lab5-5). Sections marked *Pending* are filled in by later Lab 5 Issues.
+Status: updated in Lab5-7 (deploy pipeline). Sections marked *Pending* are filled in by later Lab 5 Issues.
 
 ## Stack
 
@@ -258,4 +258,35 @@ C-02 evidence: *Pending (Lab5-6): PR from `test/prove-gate` into `main` with one
 
 ## Release procedure and running commit
 
-*Pending (Lab5-7, Lab5-8).* Release flow, rollback by image tag, and how to find the commit that is running.
+Workflow: `.github/workflows/deploy.yml` (**Deploy demo**, Lab5-7). Nobody types a deploy command after the first deployment.
+
+| Stage | What happens | Where |
+|---|---|---|
+| Trigger | A push to `main`, which only happens by merging a reviewed release PR (ruleset `protect-main`). Releases queue (`concurrency: deploy-demo`, never cancelled). | `deploy.yml` |
+| test | Calls `ci-docker.yml` (job `test-and-docker`) again on the merged commit. The deploy job runs only if it passes. | `deploy.yml` → `ci-docker.yml` |
+| Authenticate | Workload Identity Federation as `nutgpuhub-deployer`; environment `demo`; no key. | `google-github-actions/auth` v3 (pinned SHA) |
+| Build and push | `docker build` of the root `Dockerfile`, pushed as `nutgpuhub/nutgpuhub:<full commit SHA>`. | `deploy.yml` |
+| Release | Resolves the tag to its `@sha256` digest, updates and runs `nutgpuhub-migrate` (`--wait`; a failure stops before the service changes), deploys the service by digest with `APP_COMMIT=<SHA>`, sends 100% traffic to the new revision. | `deploy/release.sh` |
+| Smoke test | Read-only checks on the public URL (`APP_ORIGIN`): health, ready, page, origin rejected/accepted. Sign-in only if `SMOKE_USERNAME` (variable) and `SMOKE_PASSWORD` (secret) are both set in `demo`; NutGPUHub has no way to create a dedicated test account, so it is skipped and prints `SKIP sign-in`. | `deploy/smoke_test.py` |
+| Record | Run summary: commit, image digest, revision name, URL. | `deploy.yml` |
+
+Changes to the kit's `release.sh`: the revision gets `APP_COMMIT=<commit SHA>`, and `SERVICE_URL` is read from the service's `APP_ORIGIN` instead of `status.url`. Cloud Run's `status.url` can be the older `…-as.a.run.app` address, where the origin check (and sign-in) fails; `test_release_stub.sh` checks both.
+
+Release procedure (repeat for every release):
+
+1. Issue → feature branch from the staging branch → PR into the staging branch (CI green, reviewed by the other member) → merge.
+2. Release PR from the staging branch into `main` (CI green, approved) → merge with a merge commit.
+3. **Deploy demo** starts by itself. Check that the run is green and read its Summary.
+4. Sync the staging branch with `main` (a PR from `main` into the staging branch), so the next release PR is up to date.
+
+Which commit is running (any of these):
+
+- Cloud Run → `nutgpuhub` → Revision history: the revision with 100% traffic → Containers → env `APP_COMMIT`.
+- The **Deploy demo** run summary: commit, image digest and revision; the digest equals the revision's image digest.
+- `gcloud run services describe nutgpuhub --region asia-southeast1 --format='value(spec.template.spec.containers[0].image)'` gives the digest; Artifact Registry shows the commit tag on that digest.
+
+The first deployment (`deploy.sh`, revision `nutgpuhub-00001-np8`) has no `APP_COMMIT`; its image tag is `0a979d7…` in Artifact Registry.
+
+Rollback: Actions → **Deploy demo** → Run workflow on `main` with `image_tag` = the full SHA of an earlier released commit. No tests, build, migration or seed run; the service is pointed at that image's digest. Only images that were built by an earlier release exist.
+
+Results: *Pending (Lab5-7): first pipeline run, the visible change (second release), Console checks of guide 7.6.*
