@@ -40,6 +40,17 @@ test('TC-OPS-03 /api/ready returns 503 when the database cannot be reached', asy
   expect(response.body).toEqual({ status: 'not_ready', db: 'unavailable' });
 });
 
+test('TC-OPS-05 /api/version reports the running commit, or null when it is not a full SHA', async () => {
+  const sha = 'a'.repeat(40);
+  const released = await request(createApp(database, origin, { commit: sha })).get('/api/version').expect(200);
+  expect(released.body).toEqual({ commit: sha });
+  expect(released.headers['cache-control']).toBe('no-store');
+  for (const commit of [undefined, '', 'latest', 'A'.repeat(40), `${sha}0`]) {
+    const response = await request(createApp(database, origin, { commit })).get('/api/version').expect(200);
+    expect(response.body).toEqual({ commit: null });
+  }
+});
+
 test('TC-OPS-04 rerunning the seed with the same password keeps hashes and sessions', async () => {
   const rollback = new Error('Roll back seed rerun check');
   const password = randomBytes(18).toString('hex');
