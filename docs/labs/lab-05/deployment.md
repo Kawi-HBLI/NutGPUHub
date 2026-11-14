@@ -254,7 +254,9 @@ Repository settings belong to the owner account (Kawi-HBLI); a collaborator cann
 
 `protect-staging` does not require "up to date": feature PRs into the staging branch are merged one after another, and each merge would otherwise force every other open PR to update first. Because `main` requires "up to date" and only accepts PRs, after a release PR is merged the staging branch is behind `main` by the merge commit; sync it with a PR from `main` into the staging branch before the next release PR (the "Update branch" button cannot push to a protected staging branch).
 
-C-02 evidence: *Pending (Lab5-6): PR from `test/prove-gate` into `main` with one failing test, the red check and the blocked merge box. The PR is closed without merging and kept (R-10).*
+Applied on 14 Nov 2026 by Kawi-HBLI: environment `demo` (deployment branch `main`, the four variables, no secrets) and both rulesets Active with an empty bypass list. `deploy/setup-github-deploy.sh` ran in Cloud Shell the same day: deployer `nutgpuhub-deployer` with the three roles, pool `github-actions`, provider `github-main` with the condition above; the deployer's Keys tab is empty.
+
+C-02 (a failing PR cannot be merged): [PR #47](https://github.com/Kawi-HBLI/NutGPUHub/pull/47) from the throwaway branch `test/prove-gate` into `main` changes one expected value in TC-TIME-01 (`2026-11-07T17:00:00.000Z` → `18:00`). `npx vitest run tests/time.test.ts` failed locally first. On GitHub, [run #9](https://github.com/Kawi-HBLI/NutGPUHub/actions/runs/43592561624/job/132440214162) of **CI & Docker Build / test-and-docker** failed at the Vitest step: "Tests 1 failed | 39 passed (40)", TC-TIME-01 expected `…18:00:00.000Z`, received `…17:00:00.000Z`. The merge box showed the check as **Required** and failing, "Review required" and **"Merging is blocked"**, with the Merge button disabled. The PR was closed without merging; the PR, its run and the branch are kept (R-10). The deployed app was not touched.
 
 ## Release procedure and running commit
 
