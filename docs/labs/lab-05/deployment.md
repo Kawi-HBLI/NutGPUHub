@@ -1,6 +1,6 @@
 # Lab 5 Deployment
 
-Status: updated in Lab5-6 (keyless GitHub deploy access and merge gate). Sections marked *Pending* are filled in by later Lab 5 Issues.
+Status: updated in Lab5-7 (deploy pipeline). Sections marked *Pending* are filled in by later Lab 5 Issues.
 
 ## Stack
 
@@ -125,9 +125,9 @@ Project (Lab5-1): **CPE334-2026 NutGPUHub**, one project for Labs 5–7 and the 
 
 | Item | Value |
 |---|---|
-| Project ID | *recorded after the first deployment (Lab5-5)* |
+| Project ID | `cpe334-2026-nutgpuhub` |
 | Region | `asia-southeast1` (Singapore) |
-| Public URL | `https://nutgpuhub-<PROJECT_NUMBER>.asia-southeast1.run.app`: *exact URL recorded after the first deployment* |
+| Public URL | https://nutgpuhub-656822189084.asia-southeast1.run.app (the only URL where sign-in works; it is `APP_ORIGIN`) |
 
 Resources created by `deploy/deploy.sh` (Lab5-5). The same names are used in `release.sh`, `teardown.sh` and the tests.
 
@@ -171,7 +171,29 @@ python3 deploy/smoke_test.py "$SERVICE_URL"
 gcloud sql instances describe nutgpuhub-pg --format='value(settings.storageAutoResize)'
 ```
 
-First deployment result: *Pending (Lab5-5): commit, URL, smoke test output, C-04 screenshots.*
+### First deployment (Lab5-5, 14 Nov 2026)
+
+Run by hand from Cloud Shell on a fresh clone of `main` at commit `0a979d7688a02b4dae86c8ad6766f0de8b4ea12f` (merge of release PR #44). The dry run was read first; the real run printed "Deployment Completed!".
+
+| Check | Command | Result |
+|---|---|---|
+| Image | `deploy.sh` step 8 | `asia-southeast1-docker.pkg.dev/cpe334-2026-nutgpuhub/nutgpuhub/nutgpuhub:0a979d7688a02b4dae86c8ad6766f0de8b4ea12f` |
+| Liveness | `curl --fail "$SERVICE_URL/api/health"` | 200 `{"status":"ok"}` |
+| Database reachable | `curl --fail "$SERVICE_URL/api/ready"` | 200 `{"status":"ready","db":"connected"}` |
+| Smoke test with sign-in | `SMOKE_USERNAME=operator-a SMOKE_PASSWORD="$(gcloud secrets versions access latest --secret=nutgpuhub-demo-password)" python3 deploy/smoke_test.py "$SERVICE_URL"` | 7 × PASS: health, ready, `/`, POST from another origin rejected (403), POST from the service URL accepted (`APP_ORIGIN` matches), sign-in and `/api/v1/auth/me` as operator, sign-out |
+| Storage auto-increase | `gcloud sql instances describe nutgpuhub-pg --format='value(settings.storageAutoResize)'` | `False` |
+| Public smoke test from outside Google Cloud | `python deploy/smoke_test.py <URL>` on a laptop | 5 × PASS (sign-in skipped) |
+
+The demo password was read only privately in Cloud Shell; it is not in this file, the Issue, a screenshot or a chat.
+
+C-04 (the domain workflow on the public URL; screenshots with the URL visible are in the PDF):
+
+1. The sign-in page loads from `https://nutgpuhub-656822189084.asia-southeast1.run.app` with no Google sign-in.
+2. `operator-a` opens GPU-01 on 2026-11-15, 09:00–10:00 ("Opened 09:00–10:00.", the schedule shows it Available).
+3. `student-a` books it: "Your booking is confirmed.", Saved booking #1 and My bookings show GPU-01 · 2026-11-15 · 09:00–10:00 (Confirmed); the slot is no longer listed as available.
+4. Access restriction: `student-b` opens student-a's booking link `/?booking=1` and gets "The booking does not exist." (another student's booking is not shown, and its existence is not revealed); student-b's My bookings is empty and the taken slot is not offered.
+
+Console checks (guide 5.7, screenshots in the PDF): Cloud Run revision `nutgpuhub-00001-np8` with 100% traffic, image tag `0a979d7…`, port 3000, 1 CPU, 512 MiB, maximum 3 instances, env `NODE_ENV`, `TZ`, `APP_ORIGIN` and `DATABASE_URL` from secret `nutgpuhub-database-url:latest`; Cloud SQL `nutgpuhub-pg` PostgreSQL 16.15, Enterprise, single zone, asia-southeast1; Secret Manager lists only the two secret names; IAM shows `nutgpuhub-runner` with Cloud SQL Client only; Artifact Registry `nutgpuhub` holds one image tagged with the full commit SHA.
 
 Teardown when the course no longer needs it: `DRY_RUN=1 bash deploy/teardown.sh`, then `bash deploy/teardown.sh` (asks for the project ID; deletes all Cloud SQL data).
 
@@ -232,8 +254,41 @@ Repository settings belong to the owner account (Kawi-HBLI); a collaborator cann
 
 `protect-staging` does not require "up to date": feature PRs into the staging branch are merged one after another, and each merge would otherwise force every other open PR to update first. Because `main` requires "up to date" and only accepts PRs, after a release PR is merged the staging branch is behind `main` by the merge commit; sync it with a PR from `main` into the staging branch before the next release PR (the "Update branch" button cannot push to a protected staging branch).
 
-C-02 evidence: *Pending (Lab5-6): PR from `test/prove-gate` into `main` with one failing test, the red check and the blocked merge box. The PR is closed without merging and kept (R-10).*
+Applied on 14 Nov 2026 by Kawi-HBLI: environment `demo` (deployment branch `main`, the four variables, no secrets) and both rulesets Active with an empty bypass list. `deploy/setup-github-deploy.sh` ran in Cloud Shell the same day: deployer `nutgpuhub-deployer` with the three roles, pool `github-actions`, provider `github-main` with the condition above; the deployer's Keys tab is empty.
+
+C-02 (a failing PR cannot be merged): [PR #47](https://github.com/Kawi-HBLI/NutGPUHub/pull/47) from the throwaway branch `test/prove-gate` into `main` changes one expected value in TC-TIME-01 (`2026-11-07T17:00:00.000Z` → `18:00`). `npx vitest run tests/time.test.ts` failed locally first. On GitHub, [run #9](https://github.com/Kawi-HBLI/NutGPUHub/actions/runs/43592561624/job/132440214162) of **CI & Docker Build / test-and-docker** failed at the Vitest step: "Tests 1 failed | 39 passed (40)", TC-TIME-01 expected `…18:00:00.000Z`, received `…17:00:00.000Z`. The merge box showed the check as **Required** and failing, "Review required" and **"Merging is blocked"**, with the Merge button disabled. The PR was closed without merging; the PR, its run and the branch are kept (R-10). The deployed app was not touched.
 
 ## Release procedure and running commit
 
-*Pending (Lab5-7, Lab5-8).* Release flow, rollback by image tag, and how to find the commit that is running.
+Workflow: `.github/workflows/deploy.yml` (**Deploy demo**, Lab5-7). Nobody types a deploy command after the first deployment.
+
+| Stage | What happens | Where |
+|---|---|---|
+| Trigger | A push to `main`, which only happens by merging a reviewed release PR (ruleset `protect-main`). Releases queue (`concurrency: deploy-demo`, never cancelled). | `deploy.yml` |
+| test | Calls `ci-docker.yml` (job `test-and-docker`) again on the merged commit. The deploy job runs only if it passes. | `deploy.yml` → `ci-docker.yml` |
+| Authenticate | Workload Identity Federation as `nutgpuhub-deployer`; environment `demo`; no key. | `google-github-actions/auth` v3 (pinned SHA) |
+| Build and push | `docker build` of the root `Dockerfile`, pushed as `nutgpuhub/nutgpuhub:<full commit SHA>`. | `deploy.yml` |
+| Release | Resolves the tag to its `@sha256` digest, updates and runs `nutgpuhub-migrate` (`--wait`; a failure stops before the service changes), deploys the service by digest with `APP_COMMIT=<SHA>`, sends 100% traffic to the new revision. | `deploy/release.sh` |
+| Smoke test | Read-only checks on the public URL (`APP_ORIGIN`): health, ready, page, origin rejected/accepted. Sign-in only if `SMOKE_USERNAME` (variable) and `SMOKE_PASSWORD` (secret) are both set in `demo`; NutGPUHub has no way to create a dedicated test account, so it is skipped and prints `SKIP sign-in`. | `deploy/smoke_test.py` |
+| Record | Run summary: commit, image digest, revision name, URL. | `deploy.yml` |
+
+Changes to the kit's `release.sh`: the revision gets `APP_COMMIT=<commit SHA>`, and `SERVICE_URL` is read from the service's `APP_ORIGIN` instead of `status.url`. Cloud Run's `status.url` can be the older `…-as.a.run.app` address, where the origin check (and sign-in) fails; `test_release_stub.sh` checks both.
+
+Release procedure (repeat for every release):
+
+1. Issue → feature branch from the staging branch → PR into the staging branch (CI green, reviewed by the other member) → merge.
+2. Release PR from the staging branch into `main` (CI green, approved) → merge with a merge commit.
+3. **Deploy demo** starts by itself. Check that the run is green and read its Summary.
+4. Sync the staging branch with `main` (a PR from `main` into the staging branch), so the next release PR is up to date.
+
+Which commit is running (any of these):
+
+- Cloud Run → `nutgpuhub` → Revision history: the revision with 100% traffic → Containers → env `APP_COMMIT`.
+- The **Deploy demo** run summary: commit, image digest and revision; the digest equals the revision's image digest.
+- `gcloud run services describe nutgpuhub --region asia-southeast1 --format='value(spec.template.spec.containers[0].image)'` gives the digest; Artifact Registry shows the commit tag on that digest.
+
+The first deployment (`deploy.sh`, revision `nutgpuhub-00001-np8`) has no `APP_COMMIT`; its image tag is `0a979d7…` in Artifact Registry.
+
+Rollback: Actions → **Deploy demo** → Run workflow on `main` with `image_tag` = the full SHA of an earlier released commit. No tests, build, migration or seed run; the service is pointed at that image's digest. Only images that were built by an earlier release exist.
+
+Results: *Pending (Lab5-7): first pipeline run, the visible change (second release), Console checks of guide 7.6.*
