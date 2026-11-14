@@ -1,6 +1,6 @@
 # Lab 5 Deployment
 
-Status: updated in Lab5-5 (deploy scripts). Sections marked *Pending* are filled in by later Lab 5 Issues.
+Status: updated in Lab5-6 (keyless GitHub deploy access and merge gate). Sections marked *Pending* are filled in by later Lab 5 Issues.
 
 ## Stack
 
@@ -192,7 +192,7 @@ Workflow: `.github/workflows/ci-docker.yml`, check name **CI & Docker Build / te
 
 Steps of `test-and-docker`, in order (a failing step fails the check):
 
-1. Deploy scripts without Google Cloud (since Lab5-5): `bash -n` on `deploy/*.sh`, `test_deploy_stub.sh`, `test_release_stub.sh` and `test_smoke.py`, all with a fake `gcloud` or a mocked network.
+1. Deploy scripts without Google Cloud (since Lab5-5): `bash -n` on `deploy/*.sh`, `test_deploy_stub.sh`, `test_release_stub.sh`, `test_setup_github_stub.sh` (Lab5-6) and `test_smoke.py`, all with a fake `gcloud` or a mocked network.
 2. `npm ci` and `prisma generate` on Node.js 24.
 3. `prisma migrate deploy` on both databases.
 4. The seed twice, because the release job reruns it on every deploy.
@@ -207,7 +207,32 @@ Differences from the kit's `ci-docker.yml`: one npm package instead of `server/`
 
 Local result before the first push (Lab5-4): the same commands in a `node:24-bookworm-slim` container with `postgres:16-alpine` migrated both databases, seeded twice ("Prepared 4 demo accounts and 2 GPU machines." both times), built, passed Vitest 40/40 in 8 files and passed the restart check; Playwright passed 2/2. CI evidence (C-01): [run #2](https://github.com/Kawi-HBLI/NutGPUHub/actions/runs/43468965780/job/132035501311) on PR #41 (`ci/33-pr-checks` → `lab-5-staging`), commit `d1a12c7`, runner `ubuntu-24.04`, 1 min 48 s. Every step passed: migrations, seed twice, build, Vitest (40 tests in 8 files), Playwright (TC-E2E-01, TC-E2E-02), restart check (TC-PERSIST-01) and the Docker build. The job's Summary tab shows the per-file test table.
 
-Merge gate (required check on `main`): *Pending (Lab5-6).*
+### GitHub to Google Cloud without a key (Lab5-6)
+
+GitHub Actions signs in with Workload Identity Federation. No service-account key exists, and none is stored in GitHub. `deploy/setup-github-deploy.sh` does guide steps 6.2 and 6.3 in Cloud Shell after `deploy.sh` (dry run first: `DRY_RUN=1 PROJECT_ID=... bash deploy/setup-github-deploy.sh`). Offline test: `deploy/tests/test_setup_github_stub.sh` (CI step 1).
+
+| Item | Value | Why |
+|---|---|---|
+| Repository IDs | `repository_id` 1448293003, `repository_owner_id` 249026567 (from `api.github.com/repos/Kawi-HBLI/NutGPUHub`) | Google trusts the repository by ID, so a new repository with the same name cannot deploy. |
+| OIDC subject format | immutable: `repo:Kawi-HBLI@249026567/NutGPUHub@1448293003:...` (`use_immutable_subject: true`) | Checked with the `actions/oidc/customization/sub` API. |
+| Deployer service account | `nutgpuhub-deployer`: Cloud Run Developer (project), Artifact Registry Writer (repository `nutgpuhub` only), Service Account User (on `nutgpuhub-runner` only) | Enough to push the image, update the migration job and the service, and run them as the runtime account. It cannot read secrets, change IAM or create databases. User-managed keys: none (the script fails if one exists). |
+| Pool / provider | `github-actions` / `github-main`, issuer `https://token.actions.githubusercontent.com`, mapping `google.subject=assertion.sub`, `attribute.repository_id=assertion.repository_id` | |
+| Attribute condition | `assertion.repository_id == '1448293003' && assertion.repository_owner_id == '249026567' && assertion.ref == 'refs/heads/main' && assertion.workflow_ref == 'Kawi-HBLI/NutGPUHub/.github/workflows/deploy.yml@refs/heads/main' && assertion.sub == 'repo:Kawi-HBLI@249026567/NutGPUHub@1448293003:environment:demo'` | Only this repository, its `main` branch, the `deploy.yml` workflow and the `demo` environment can get a token. |
+| Impersonation | Workload Identity User on the deployer for `principalSet://…/workloadIdentityPools/github-actions/attribute.repository_id/1448293003` | |
+| GitHub environment | `demo`, deployment branch `main` only; variables `GCP_PROJECT_ID`, `GCP_REGION`, `WIF_PROVIDER`, `WIF_SERVICE_ACCOUNT` (printed by the script); no secrets | The variables say where to deploy; none of them is a password. |
+
+### Merge gate
+
+Repository settings belong to the owner account (Kawi-HBLI); a collaborator cannot create rulesets or environments on a personal repository.
+
+| Ruleset | Target | Rules | Bypass list |
+|---|---|---|---|
+| `protect-main` (guide 6.5) | default branch `main` | Restrict deletions; block force pushes; require a pull request with 1 approval; require status check `test-and-docker` and branches up to date | empty |
+| `protect-staging` | pattern `*-staging` | Restrict deletions; block force pushes; require a pull request with 1 approval; require status check `test-and-docker` | empty |
+
+`protect-staging` does not require "up to date": feature PRs into the staging branch are merged one after another, and each merge would otherwise force every other open PR to update first. Because `main` requires "up to date" and only accepts PRs, after a release PR is merged the staging branch is behind `main` by the merge commit; sync it with a PR from `main` into the staging branch before the next release PR (the "Update branch" button cannot push to a protected staging branch).
+
+C-02 evidence: *Pending (Lab5-6): PR from `test/prove-gate` into `main` with one failing test, the red check and the blocked merge box. The PR is closed without merging and kept (R-10).*
 
 ## Release procedure and running commit
 
