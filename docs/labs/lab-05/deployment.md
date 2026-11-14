@@ -1,6 +1,6 @@
 # Lab 5 Deployment
 
-Status: updated after the Lab5-8 persistence check. Sections marked *Pending* are filled in by later Lab 5 Issues.
+Status: complete for the Lab 5 submission (Lab5-9, Issue #38). Public URL: https://nutgpuhub-656822189084.asia-southeast1.run.app. Evidence index and Definition of Done: at the end of this file.
 
 ## Stack
 
@@ -44,6 +44,8 @@ Only placeholders are committed (`.env.example`). `.env` is in `.gitignore`.
 | `PORT` | HTTP port | No | `.env` (`3000`) | Set by Cloud Run (`3000`) |
 | `HOST` | Bind address; default `127.0.0.1` | No | Not set | Container image sets `0.0.0.0` |
 | `NODE_ENV` | Runtime mode; the app code does not branch on it | No | Not set | `production` in the image and on Cloud Run |
+| `TZ` | Process time zone; the app formats Bangkok time itself | No | Not set | `Asia/Bangkok` on Cloud Run and the migration job |
+| `APP_COMMIT` | Full commit SHA of the running release, returned by `/api/version` and shown in the footer (Lab5-7) | No | Not set (footer shows no release) | Set on every revision by `deploy/release.sh` |
 | `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB` | Docker Compose only: the local database container and the `DATABASE_URL` built from it | Local only | Fallbacks in `docker-compose.yml`, or your `.env` | Not used (Cloud SQL and Secret Manager) |
 | `APP_PORT` | Docker Compose only: host port for the app (default `3000`); `APP_ORIGIN` follows it | No | Optional in `.env` | Not used |
 
@@ -118,6 +120,41 @@ docker compose down -v
 On Windows PowerShell use `curl.exe`. `docker compose down -v` also deletes the database volume.
 
 Local result (Lab5-3, Docker 28.0.1): the image built (502 MB); `migrate` applied 4 migrations, prepared 4 demo accounts and 2 GPU machines and exited 0; `app` became healthy and ran as `uid=1000(node)`; `/api/health` and `/api/ready` returned 200 and `/` returned 200. An operator opened a GPU-01 slot and `student-a` booked it through the API. After `docker compose down` and `docker compose up -d`, the same session cookie still returned 200 on `/api/v1/auth/me` and My Bookings still contained the booking. A POST with `Origin: http://127.0.0.1:3000` returned 403 `INVALID_ORIGIN`, and `migrate` without `DEMO_PASSWORD` stopped with the seed's error message.
+
+### C-03: fresh clone with only `.env.example` values (Lab5-9)
+
+Run on 14 Nov 2026 in an empty folder on a Windows laptop (Docker 28.0.1), on `main` at `6604c5e2102a23a348de0dc1f9ce97908a00372d` (release #53). The only change to `.env.example` was a private `DEMO_PASSWORD` (the placeholder is rejected by the seed); it is not shown.
+
+```text
+$ git clone https://github.com/Kawi-HBLI/NutGPUHub.git && cd NutGPUHub
+$ git log -1 --format='%h %s'
+6604c5e Merge pull request #53 from Kawi-HBLI/lab-5-staging
+$ cp .env.example .env        # set DEMO_PASSWORD
+$ docker compose up --build -d
+ app  Built
+ Container nutgpuhub-db-1  Healthy
+ Container nutgpuhub-migrate-1  Exited
+ Container nutgpuhub-app-1  Started
+$ docker compose ps -a
+app       Up (health: starting)
+db        Up 7 seconds (healthy)
+migrate   Exited (0)
+$ docker compose logs migrate | tail -1
+migrate-1  | Prepared 4 demo accounts and 2 GPU machines.
+$ curl -s http://localhost:3000/api/health ; curl -s http://localhost:3000/api/ready ; curl -s http://localhost:3000/api/version
+{"status":"ok"}
+{"status":"ready","db":"connected"}
+{"commit":null}
+$ curl -s -o /dev/null -w "%{http_code}\n" http://localhost:3000/
+200
+$ # POST /api/v1/auth/login as student-a (Origin http://localhost:3000), then GET /api/v1/auth/me with the cookie
+{"id":1,"username":"student-a","role":"student"}
+$ docker compose exec app id
+uid=1000(node) gid=1000(node) groups=1000(node)
+$ docker compose down -v
+```
+
+`/api/version` is `null` locally because `APP_COMMIT` is only set on Cloud Run.
 
 ## GCP project and resources
 
@@ -323,3 +360,29 @@ Test record: `operator-a` opened GPU-01 on 2026-11-16, 10:00–11:00, and `stude
 | Roll forward to release B | Run workflow, `image_tag=6604c5e2102a23a348de0dc1f9ce97908a00372d` ([run #4](https://github.com/Kawi-HBLI/NutGPUHub/actions/runs/43614604024)): `test` skipped, `deploy` green in 40 s, "Rollback: true", digest `sha256:c755ce9ac3f1…` (the same image as release B) | `nutgpuhub-00006-z4r`, deployed by `nutgpuhub-deployer` | `6604c5e…` | Still signed in; bookings #1 and #2 unchanged; footer "Release 6604c5e" again; `/api/version` returns `6604c5e…` |
 
 Result: the record created before the restart was still there after the restart, the rollback and the roll forward, and so was the session (stored in the `sessions` table). Booking #1 has now survived five revision changes since the first deployment. Screenshots 01–09 (URL, revision and commit visible) are in the PDF.
+
+## Evidence index (Lab5-9)
+
+Repository: https://github.com/Kawi-HBLI/NutGPUHub (public). Lab 5 Issues #30–#38 and #50, Pull Requests #39–#56, all labelled `lab5`. Every Pull Request into `lab-5-staging` and `main` was reviewed by the member who did not author it; nobody approved their own Pull Request.
+
+| Rubric part | Artifact / direct link | IDs / version | Verification result |
+|---|---|---|---|
+| 1. CI and quality gate | [`ci-docker.yml`](../../../.github/workflows/ci-docker.yml); PR #41, [run](https://github.com/Kawi-HBLI/NutGPUHub/actions/runs/43468965780/job/132035501311) | C-01, R-05, commit `d1a12c7` | Build, Vitest 40, Playwright 2, restart check and Docker build pass; per-file test table in the run summary |
+| 1. CI and quality gate | [PR #47](https://github.com/Kawi-HBLI/NutGPUHub/pull/47) from `test/prove-gate`, [run](https://github.com/Kawi-HBLI/NutGPUHub/actions/runs/43592561624/job/132440214162); rulesets `protect-main`, `protect-staging` | C-02, R-06, commit `3eaa30c` | TC-TIME-01 failed (1 failed, 39 passed); `test-and-docker` Required; "Merging is blocked"; PR closed without merging and kept |
+| 2. Docker and reproducible configuration | [`Dockerfile`](../../../Dockerfile), [`.dockerignore`](../../../.dockerignore), [`docker-compose.yml`](../../../docker-compose.yml); "C-03" section above | C-03, R-01, R-02, commit `6604c5e` | Fresh clone + `.env.example` values: image built, migrate exited 0, health/ready 200, sign-in works, runs as `node` |
+| 2. Docker and reproducible configuration | [`.env.example`](../../../.env.example), "Environment variables" table above | R-02, R-12 | Placeholders only; secrets live in Secret Manager; `.env` and `gha-creds-*.json` are git-ignored |
+| 3. GCP deployment and persistence | https://nutgpuhub-656822189084.asia-southeast1.run.app; "First deployment" section above | C-04, R-03, first deployment `0a979d7` | Smoke test 7 × PASS; operator opens a slot, student books it, another student cannot see it |
+| 3. GCP deployment and persistence | Deploy demo [run #3](https://github.com/Kawi-HBLI/NutGPUHub/actions/runs/43613615624) and [run #4](https://github.com/Kawi-HBLI/NutGPUHub/actions/runs/43614604024); "Persistence" section above | C-05, R-04, revisions 00004–00006 | Booking #2 and the session survived a restart, a rollback and a roll forward |
+| 4. Repeatable release pipeline | Issue #50 → PR #52 (review by Kawi-HBLI) → release PR #53 → [Deploy demo run #2](https://github.com/Kawi-HBLI/NutGPUHub/actions/runs/43609341405) | C-06, R-07 to R-10, release `6604c5e` | Revision `nutgpuhub-00003-8c8` with `APP_COMMIT=6604c5e…`, image digest `c755ce9ac3f1` = run summary; the footer shows "Release 6604c5e" |
+| 4. Repeatable release pipeline | [`deploy.yml`](../../../.github/workflows/deploy.yml), [`deploy/release.sh`](../../../deploy/release.sh), "Release procedure" section above | R-07, R-08 | Release steps, running-commit lookup and rollback documented |
+
+## Definition of Done (Lab 5 handout Section 11)
+
+- [x] A fresh clone builds and runs (C-03); every setting comes from the environment; no secret in the repository, the image, the logs or the PDF.
+- [x] The public URL serves the latest release from `main`, the domain workflow works there (C-04), and the running commit is visible (footer, `/api/version`, `APP_COMMIT`).
+- [x] Data survived a restart and a redeploy (C-05).
+- [x] CI runs on every Pull Request into `lab-5-staging` and `main` (C-01), and a failed required check blocks the merge (C-02).
+- [x] The latest release reached `main` through reviewed Pull Requests and was deployed by the pipeline (C-06).
+- [x] The repository is public (R-12).
+- [x] `deployment.md` and the evidence index are complete; both members can explain any sampled step.
+- [ ] The PDF is named `lab5_sec<section>_<group name>.pdf` and submitted on LEB2 by 15 Nov 2026, 23:59 (done outside the repository).
