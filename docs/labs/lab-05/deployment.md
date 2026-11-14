@@ -1,6 +1,6 @@
 # Lab 5 Deployment
 
-Status: updated in Lab5-4 (CI). Sections marked *Pending* are filled in by later Lab 5 Issues.
+Status: updated in Lab5-5 (deploy scripts). Sections marked *Pending* are filled in by later Lab 5 Issues.
 
 ## Stack
 
@@ -121,7 +121,59 @@ Local result (Lab5-3, Docker 28.0.1): the image built (502 MB); `migrate` applie
 
 ## GCP project and resources
 
-*Pending (Lab5-1, Lab5-5).* Project ID, region, Cloud Run service, migration job, Artifact Registry repository, Cloud SQL instance and database, secret names, service accounts.
+Project (Lab5-1): **CPE334-2026 NutGPUHub**, one project for Labs 5–7 and the Final Project, on the Free Trial. Thawat is Owner, Tanadet is Editor. Alerts-only budget `CPE334-Alert`: THB 8,500, 13 Nov – 15 Dec 2026, e-mails at 10/20/50/90% of actual cost (credits not subtracted).
+
+| Item | Value |
+|---|---|
+| Project ID | *recorded after the first deployment (Lab5-5)* |
+| Region | `asia-southeast1` (Singapore) |
+| Public URL | `https://nutgpuhub-<PROJECT_NUMBER>.asia-southeast1.run.app`: *exact URL recorded after the first deployment* |
+
+Resources created by `deploy/deploy.sh` (Lab5-5). The same names are used in `release.sh`, `teardown.sh` and the tests.
+
+| Resource | Name | Settings |
+|---|---|---|
+| Artifact Registry (Docker) | `nutgpuhub` | Image `nutgpuhub/nutgpuhub:<full commit SHA>`, one tag per commit |
+| Cloud SQL for PostgreSQL | instance `nutgpuhub-pg`, database `nutgpuhub`, user `nutgpuhub` | PostgreSQL 16, Enterprise edition, `db-f1-micro`, 10 GB SSD, storage auto-increase **off**, daily backup 03:00 |
+| Runtime service account | `nutgpuhub-runner` | Project role Cloud SQL Client only; Secret Manager Secret Accessor on each of the two secrets, not project-wide |
+| Secret | `nutgpuhub-database-url` | `DATABASE_URL` (Unix socket `/cloudsql/PROJECT:REGION:nutgpuhub-pg`, `connection_limit=3`); the DB password is generated (`openssl rand -hex 24`) |
+| Secret | `nutgpuhub-demo-password` | `DEMO_PASSWORD` for the seed (generated, 24 characters). Read only privately: `gcloud secrets versions access latest --secret=nutgpuhub-demo-password` |
+| Cloud Run job | `nutgpuhub-migrate` | Same image; `npx prisma migrate deploy && npm run db:seed`; gets `DATABASE_URL` and `DEMO_PASSWORD`; 1 retry, 300 s timeout |
+| Cloud Run service | `nutgpuhub` | Public (`--allow-unauthenticated`), port 3000, 0–3 instances, 512 MiB, 1 CPU; secret `DATABASE_URL` only; plain env `NODE_ENV=production`, `TZ=Asia/Bangkok`, `APP_ORIGIN=<public URL>` |
+
+Changes to the kit's `deploy/` scripts:
+
+| Change | Reason |
+|---|---|
+| Names `nutgpuhub*` instead of `toktickit*` | Our app. |
+| No administrator secret and no `--demo` option; the seed always uses `nutgpuhub-demo-password` | NutGPUHub has no administrator. Its seed needs `DEMO_PASSWORD` for the four demo accounts and two GPU machines, and nobody could sign in without them. The service itself never receives `DEMO_PASSWORD`. |
+| `APP_ORIGIN` is set to `https://nutgpuhub-<PROJECT_NUMBER>.<REGION>.run.app`, read with `gcloud projects describe` before the service exists | The app rejects every POST, sign-in included, whose `Origin` is not `APP_ORIGIN`. Cloud Run's deterministic URL is known before the first deploy, so one deploy is enough. Open the app at this URL; the other `…-as.a.run.app` address serves pages but sign-in there returns 403. |
+| Image tag is the full commit SHA (not `latest`); the script stops if the working tree has uncommitted changes | The running commit is known from the first deployment (R-08), and `release.sh` can roll back by tag. |
+| `--no-storage-auto-increase` when the instance is created | Guide step 5.4 then only checks the setting. |
+| Migration command `npx prisma migrate deploy && npm run db:seed` | Our seed script name. The seed is safe to rerun (Lab5-2). |
+| `smoke_test.py`: no `/api/categories`; sign-in with `username`, the `nutgpuhub_session` cookie and an `Origin` header; two origin checks | NutGPUHub has no public list endpoint. A POST from another origin must return 403, and an empty sign-in from the service URL must return 400 (not 403), which proves `APP_ORIGIN` matches the URL. Optional sign-in with `SMOKE_USERNAME`/`SMOKE_PASSWORD`. |
+| Offline tests rewritten for these rules; CI runs them in step 1 | `deploy/tests/test_deploy_stub.sh` (4 scenarios + bad input + dry run), `test_release_stub.sh`, `test_smoke.py` (6 tests). |
+
+First deployment from Cloud Shell (guide Episode 5), on a clean clone of `main`:
+
+```bash
+export PROJECT_ID=<project id>
+export REGION=asia-southeast1
+gcloud config set project "$PROJECT_ID"
+git clone https://github.com/Kawi-HBLI/NutGPUHub.git && cd NutGPUHub
+git rev-parse HEAD
+DRY_RUN=1 PROJECT_ID="$PROJECT_ID" REGION="$REGION" bash deploy/deploy.sh
+PROJECT_ID="$PROJECT_ID" REGION="$REGION" bash deploy/deploy.sh
+export SERVICE_URL="https://nutgpuhub-$(gcloud projects describe "$PROJECT_ID" --format='value(projectNumber)').$REGION.run.app"
+curl --fail "$SERVICE_URL/api/health"
+curl --fail "$SERVICE_URL/api/ready"
+python3 deploy/smoke_test.py "$SERVICE_URL"
+gcloud sql instances describe nutgpuhub-pg --format='value(settings.storageAutoResize)'
+```
+
+First deployment result: *Pending (Lab5-5): commit, URL, smoke test output, C-04 screenshots.*
+
+Teardown when the course no longer needs it: `DRY_RUN=1 bash deploy/teardown.sh`, then `bash deploy/teardown.sh` (asks for the project ID; deletes all Cloud SQL data).
 
 ## CI and the merge gate
 
@@ -140,17 +192,18 @@ Workflow: `.github/workflows/ci-docker.yml`, check name **CI & Docker Build / te
 
 Steps of `test-and-docker`, in order (a failing step fails the check):
 
-1. `npm ci` and `prisma generate` on Node.js 24.
-2. `prisma migrate deploy` on both databases.
-3. The seed twice, because the release job reruns it on every deploy.
-4. `npm run build` (server and client).
-5. `npm test`: Vitest unit, API and integration tests (TC-AUTH, TC-SLOT, TC-BOOK, TC-OPS and others).
-6. `npx playwright test`: browser journeys TC-E2E-01 and TC-E2E-02 against the built app.
-7. `npm run verify:restart`: TC-PERSIST-01, a booking survives a restart of the Node process.
-8. `docker build` of the root `Dockerfile` that Cloud Run uses.
-9. A test summary on the run page (`scripts/ci-test-summary.mjs`): passed, failed and skipped per test file, the restart check, the Docker build and the tested commit. If a step fails, Playwright traces are uploaded as the `playwright-test-results` artifact for 7 days.
+1. Deploy scripts without Google Cloud (since Lab5-5): `bash -n` on `deploy/*.sh`, `test_deploy_stub.sh`, `test_release_stub.sh` and `test_smoke.py`, all with a fake `gcloud` or a mocked network.
+2. `npm ci` and `prisma generate` on Node.js 24.
+3. `prisma migrate deploy` on both databases.
+4. The seed twice, because the release job reruns it on every deploy.
+5. `npm run build` (server and client).
+6. `npm test`: Vitest unit, API and integration tests (TC-AUTH, TC-SLOT, TC-BOOK, TC-OPS and others).
+7. `npx playwright test`: browser journeys TC-E2E-01 and TC-E2E-02 against the built app.
+8. `npm run verify:restart`: TC-PERSIST-01, a booking survives a restart of the Node process.
+9. `docker build` of the root `Dockerfile` that Cloud Run uses.
+10. A test summary on the run page (`scripts/ci-test-summary.mjs`): passed, failed and skipped per test file, the restart check, the Docker build and the tested commit. If a step fails, Playwright traces are uploaded as the `playwright-test-results` artifact for 7 days.
 
-Differences from the kit's `ci-docker.yml`: one npm package instead of `server/` and `client/` steps; a second database for the tests; Playwright and the restart check added; the image tag is `nutgpuhub:ci-<sha>`. The kit's deploy-script check (`deploy/` tests) is added in Lab5-5 together with the `deploy/` folder.
+Differences from the kit's `ci-docker.yml`: one npm package instead of `server/` and `client/` steps; a second database for the tests; Playwright and the restart check added; the image tag is `nutgpuhub:ci-<sha>`. The kit's deploy-script check was added in Lab5-5 together with `deploy/`; it uses the runner's `python3` instead of a `setup-python` step.
 
 Local result before the first push (Lab5-4): the same commands in a `node:24-bookworm-slim` container with `postgres:16-alpine` migrated both databases, seeded twice ("Prepared 4 demo accounts and 2 GPU machines." both times), built, passed Vitest 40/40 in 8 files and passed the restart check; Playwright passed 2/2. CI evidence (C-01): [run #2](https://github.com/Kawi-HBLI/NutGPUHub/actions/runs/43468965780/job/132035501311) on PR #41 (`ci/33-pr-checks` → `lab-5-staging`), commit `d1a12c7`, runner `ubuntu-24.04`, 1 min 48 s. Every step passed: migrations, seed twice, build, Vitest (40 tests in 8 files), Playwright (TC-E2E-01, TC-E2E-02), restart check (TC-PERSIST-01) and the Docker build. The job's Summary tab shows the per-file test table.
 
