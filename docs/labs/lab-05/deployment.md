@@ -1,6 +1,6 @@
 # Lab 5 Deployment
 
-Status: updated in Lab5-6 (keyless GitHub deploy access and merge gate). Sections marked *Pending* are filled in by later Lab 5 Issues.
+Status: updated after the first deployment (Lab5-5). Sections marked *Pending* are filled in by later Lab 5 Issues.
 
 ## Stack
 
@@ -125,9 +125,9 @@ Project (Lab5-1): **CPE334-2026 NutGPUHub**, one project for Labs 5–7 and the 
 
 | Item | Value |
 |---|---|
-| Project ID | *recorded after the first deployment (Lab5-5)* |
+| Project ID | `cpe334-2026-nutgpuhub` |
 | Region | `asia-southeast1` (Singapore) |
-| Public URL | `https://nutgpuhub-<PROJECT_NUMBER>.asia-southeast1.run.app`: *exact URL recorded after the first deployment* |
+| Public URL | https://nutgpuhub-656822189084.asia-southeast1.run.app (the only URL where sign-in works; it is `APP_ORIGIN`) |
 
 Resources created by `deploy/deploy.sh` (Lab5-5). The same names are used in `release.sh`, `teardown.sh` and the tests.
 
@@ -171,7 +171,29 @@ python3 deploy/smoke_test.py "$SERVICE_URL"
 gcloud sql instances describe nutgpuhub-pg --format='value(settings.storageAutoResize)'
 ```
 
-First deployment result: *Pending (Lab5-5): commit, URL, smoke test output, C-04 screenshots.*
+### First deployment (Lab5-5, 14 Nov 2026)
+
+Run by hand from Cloud Shell on a fresh clone of `main` at commit `0a979d7688a02b4dae86c8ad6766f0de8b4ea12f` (merge of release PR #44). The dry run was read first; the real run printed "Deployment Completed!".
+
+| Check | Command | Result |
+|---|---|---|
+| Image | `deploy.sh` step 8 | `asia-southeast1-docker.pkg.dev/cpe334-2026-nutgpuhub/nutgpuhub/nutgpuhub:0a979d7688a02b4dae86c8ad6766f0de8b4ea12f` |
+| Liveness | `curl --fail "$SERVICE_URL/api/health"` | 200 `{"status":"ok"}` |
+| Database reachable | `curl --fail "$SERVICE_URL/api/ready"` | 200 `{"status":"ready","db":"connected"}` |
+| Smoke test with sign-in | `SMOKE_USERNAME=operator-a SMOKE_PASSWORD="$(gcloud secrets versions access latest --secret=nutgpuhub-demo-password)" python3 deploy/smoke_test.py "$SERVICE_URL"` | 7 × PASS: health, ready, `/`, POST from another origin rejected (403), POST from the service URL accepted (`APP_ORIGIN` matches), sign-in and `/api/v1/auth/me` as operator, sign-out |
+| Storage auto-increase | `gcloud sql instances describe nutgpuhub-pg --format='value(settings.storageAutoResize)'` | `False` |
+| Public smoke test from outside Google Cloud | `python deploy/smoke_test.py <URL>` on a laptop | 5 × PASS (sign-in skipped) |
+
+The demo password was read only privately in Cloud Shell; it is not in this file, the Issue, a screenshot or a chat.
+
+C-04 (the domain workflow on the public URL; screenshots with the URL visible are in the PDF):
+
+1. The sign-in page loads from `https://nutgpuhub-656822189084.asia-southeast1.run.app` with no Google sign-in.
+2. `operator-a` opens GPU-01 on 2026-11-15, 09:00–10:00 ("Opened 09:00–10:00.", the schedule shows it Available).
+3. `student-a` books it: "Your booking is confirmed.", Saved booking #1 and My bookings show GPU-01 · 2026-11-15 · 09:00–10:00 (Confirmed); the slot is no longer listed as available.
+4. Access restriction: `student-b` opens student-a's booking link `/?booking=1` and gets "The booking does not exist." (another student's booking is not shown, and its existence is not revealed); student-b's My bookings is empty and the taken slot is not offered.
+
+Console checks (guide 5.7, screenshots in the PDF): Cloud Run revision `nutgpuhub-00001-np8` with 100% traffic, image tag `0a979d7…`, port 3000, 1 CPU, 512 MiB, maximum 3 instances, env `NODE_ENV`, `TZ`, `APP_ORIGIN` and `DATABASE_URL` from secret `nutgpuhub-database-url:latest`; Cloud SQL `nutgpuhub-pg` PostgreSQL 16.15, Enterprise, single zone, asia-southeast1; Secret Manager lists only the two secret names; IAM shows `nutgpuhub-runner` with Cloud SQL Client only; Artifact Registry `nutgpuhub` holds one image tagged with the full commit SHA.
 
 Teardown when the course no longer needs it: `DRY_RUN=1 bash deploy/teardown.sh`, then `bash deploy/teardown.sh` (asks for the project ID; deletes all Cloud SQL data).
 
