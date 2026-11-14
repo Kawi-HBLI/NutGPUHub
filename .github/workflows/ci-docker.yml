@@ -10,7 +10,7 @@
 # Differences from the kit: NutGPUHub is one npm package (no client/ and server/
 # folders), the tests need a second database (TEST_DATABASE_URL), and the job also
 # runs the Playwright journeys and the process-restart check. The deploy-script
-# check is added together with deploy/ in Lab5-5.
+# check uses the system python3 instead of a setup-python step.
 
 name: CI & Docker Build
 
@@ -59,6 +59,14 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+
+      # Offline checks of the deploy scripts: fake gcloud, no Google Cloud access.
+      - name: Check deployment scripts without accessing GCP
+        run: |
+          for script in deploy/*.sh; do bash -n "$script"; done
+          bash deploy/tests/test_deploy_stub.sh
+          bash deploy/tests/test_release_stub.sh
+          python3 -m unittest discover -s deploy/tests -p 'test_smoke.py' -v
 
       - name: Set up Node.js 24
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
