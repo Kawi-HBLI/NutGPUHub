@@ -4,7 +4,7 @@ import { Alert, Button, Card, Input, StatusBadge } from './components';
 
 type Slot = { slotId: number; machineCode: string; startAt: string; endAt: string };
 type Booking = Slot & { bookingId: number };
-type Slots = { state: 'loading' } | { state: 'error'; message: string } | { state: 'ready'; data: Slot[] };
+type Slots = { state: 'no-date' } | { state: 'loading' } | { state: 'error'; message: string } | { state: 'ready'; data: Slot[] };
 type MyBookings = { state: 'loading' } | { state: 'error'; message: string } | { state: 'ready'; data: Booking[] };
 
 export function StudentWorkspace() {
@@ -26,6 +26,11 @@ export function StudentWorkspace() {
   }, [refresh]);
 
   useEffect(() => {
+    // An empty date cannot succeed, so ask for one instead of sending it (#60).
+    if (!date) {
+      setSlots({ state: 'no-date' });
+      return;
+    }
     let active = true;
     setSlots({ state: 'loading' });
     void apiRequest<Slot[]>(`/slots?date=${encodeURIComponent(date)}`).then(result => {
@@ -71,6 +76,7 @@ export function StudentWorkspace() {
         <Input id="booking-date" type="date" value={date} disabled={pending} onChange={event => setDate(event.target.value)} /></div>
       {notice && <Alert tone={notice.error ? 'error' : 'success'}>{notice.text}</Alert>}
       <div className="slot-list" aria-busy={slots.state === 'loading'}>
+        {slots.state === 'no-date' && <Alert tone="empty">Choose a date to see available slots.</Alert>}
         {slots.state === 'loading' && <Alert tone="loading">Loading available slots…</Alert>}
         {slots.state === 'error' && <div className="form-stack"><Alert tone="error">{slots.message}</Alert>
           <Button variant="secondary" onClick={() => setRefresh(value => value + 1)}>Try again</Button></div>}
