@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { apiRequest, bangkokToday, formatBangkokTime } from './api';
 import { Alert, Button, Card, Input, Select, StatusBadge, Table } from './components';
 
@@ -20,6 +20,7 @@ export function OperatorWorkspace() {
   const [hour, setHour] = useState('09');
   const [slots, setSlots] = useState<Schedule>({ state: 'loading' });
   const [pending, setPending] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
   const [notice, setNotice] = useState<{ kind: 'error' | 'success'; text: string } | null>(null);
 
   useEffect(() => {
@@ -33,19 +34,21 @@ export function OperatorWorkspace() {
     });
   }, []);
 
-  const loadSchedule = useCallback(async () => {
+  // Reloads the schedule for the selected machine and date. A late response for an older
+  // date or a cleared date is ignored, so stale slots never replace the current view (#60).
+  useEffect(() => {
     if (machineId === null) return;
-    // An empty date has no schedule; drop the old day's slots instead of keeping them on screen (#60).
     if (!date) {
       setSlots({ state: 'no-date' });
       return;
     }
+    let active = true;
     setSlots({ state: 'loading' });
-    const result = await apiRequest<Slot[]>(`/machines/${machineId}/slots?date=${encodeURIComponent(date)}`);
-    setSlots(result.ok ? { state: 'ready', data: result.data } : { state: 'error', message: result.error.message });
-  }, [machineId, date]);
-
-  useEffect(() => { void loadSchedule(); }, [loadSchedule]);
+    void apiRequest<Slot[]>(`/machines/${machineId}/slots?date=${encodeURIComponent(date)}`).then((result) => {
+      if (active) setSlots(result.ok ? { state: 'ready', data: result.data } : { state: 'error', message: result.error.message });
+    });
+    return () => { active = false; };
+  }, [machineId, date, refreshKey]);
 
   async function openSlot(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -59,7 +62,7 @@ export function OperatorWorkspace() {
     setPending(false);
     if (result.ok) {
       setNotice({ kind: 'success', text: `Opened ${formatBangkokTime(result.data.startAt)}–${formatBangkokTime(result.data.endAt)}.` });
-      await loadSchedule();
+      setRefreshKey(value => value + 1);
     } else {
       // Keep the selected date and hour so the operator can correct the request.
       setNotice({ kind: 'error', text: result.error.message });
