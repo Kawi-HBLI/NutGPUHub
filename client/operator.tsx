@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { apiRequest, bangkokToday, formatBangkokTime } from './api';
 import { Alert, Button, Card, Input, Select, StatusBadge, Table } from './components';
 
@@ -8,6 +8,7 @@ type Slot = {
   booking: { bookingId: number; studentUsername: string } | null;
 };
 type Load<T> = { state: 'loading' } | { state: 'error'; message: string } | { state: 'ready'; data: T };
+type Schedule = Load<Slot[]> | { state: 'no-date' };
 
 const hours = Array.from({ length: 24 }, (_, hour) => String(hour).padStart(2, '0'));
 
@@ -17,8 +18,9 @@ export function OperatorWorkspace() {
   const [machineId, setMachineId] = useState<number | null>(null);
   const [date, setDate] = useState(bangkokToday);
   const [hour, setHour] = useState('09');
-  const [slots, setSlots] = useState<Load<Slot[]>>({ state: 'loading' });
+  const [slots, setSlots] = useState<Schedule>({ state: 'loading' });
   const [pending, setPending] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
   const [notice, setNotice] = useState<{ kind: 'error' | 'success'; text: string } | null>(null);
 
   useEffect(() => {
@@ -32,14 +34,21 @@ export function OperatorWorkspace() {
     });
   }, []);
 
-  const loadSchedule = useCallback(async () => {
-    if (machineId === null || !date) return;
+  // Reloads the schedule for the selected machine and date. A late response for an older
+  // date or a cleared date is ignored, so stale slots never replace the current view (#60).
+  useEffect(() => {
+    if (machineId === null) return;
+    if (!date) {
+      setSlots({ state: 'no-date' });
+      return;
+    }
+    let active = true;
     setSlots({ state: 'loading' });
-    const result = await apiRequest<Slot[]>(`/machines/${machineId}/slots?date=${encodeURIComponent(date)}`);
-    setSlots(result.ok ? { state: 'ready', data: result.data } : { state: 'error', message: result.error.message });
-  }, [machineId, date]);
-
-  useEffect(() => { void loadSchedule(); }, [loadSchedule]);
+    void apiRequest<Slot[]>(`/machines/${machineId}/slots?date=${encodeURIComponent(date)}`).then((result) => {
+      if (active) setSlots(result.ok ? { state: 'ready', data: result.data } : { state: 'error', message: result.error.message });
+    });
+    return () => { active = false; };
+  }, [machineId, date, refreshKey]);
 
   async function openSlot(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -53,7 +62,7 @@ export function OperatorWorkspace() {
     setPending(false);
     if (result.ok) {
       setNotice({ kind: 'success', text: `Opened ${formatBangkokTime(result.data.startAt)}–${formatBangkokTime(result.data.endAt)}.` });
-      await loadSchedule();
+      setRefreshKey(value => value + 1);
     } else {
       // Keep the selected date and hour so the operator can correct the request.
       setNotice({ kind: 'error', text: result.error.message });
@@ -87,7 +96,8 @@ export function OperatorWorkspace() {
         </form>
       </Card>
       <Card aria-labelledby="schedule-heading">
-        <div className="card-heading"><h2 id="schedule-heading">Schedule for {date}</h2><p>Bookings and open slots for the selected machine. Bangkok time.</p></div>
+        <div className="card-heading"><h2 id="schedule-heading">{date ? `Schedule for ${date}` : 'Schedule'}</h2><p>Bookings and open slots for the selected machine. Bangkok time.</p></div>
+        {slots.state === 'no-date' && <Alert tone="empty">Choose a date to see the schedule.</Alert>}
         {slots.state === 'loading' && <Alert tone="loading">Loading schedule…</Alert>}
         {slots.state === 'error' && <Alert tone="error">{slots.message}</Alert>}
         {slots.state === 'ready' && slots.data.length === 0 && <Alert tone="empty">No slots on this date.</Alert>}
