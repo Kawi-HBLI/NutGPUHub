@@ -27,7 +27,8 @@ test('TC-E2E-03 operator schedule asks for a date and shows no slots after the d
 // Issue #60, UAT finding NF-02: an empty booking date must not be sent, and no useless retry is offered.
 test('TC-E2E-04 student availability asks for a date and sends no request while the date is empty', async ({ page }) => {
   await signIn(page, fixture.studentA.username, fixture.password);
-  await expect(page.getByRole('list', { name: 'Available slots' })).toBeVisible();
+  // Wait until today's availability has loaded (an empty list renders with no height, so check the loading text).
+  await expect(page.getByText('Loading available slots…')).toHaveCount(0);
 
   const emptyDateRequests: string[] = [];
   page.on('request', (request) => {
