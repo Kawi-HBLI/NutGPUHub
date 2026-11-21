@@ -116,7 +116,7 @@ Each case lists the requirement and AC it checks. "Expected" gives the exact tex
 | 2 | Sign in as `operator-b`. | The machine list contains only `GPU-02`. `GPU-01` cannot be selected. |
 | 3 | View the `GPU-02` schedule for D. | Only `GPU-02` slots appear (14:00 from UAT-02). No `GPU-01` slot and no "Booked by student-a" from UAT-01 is visible. |
 
-The UI can only show that the form and the other machine are hidden. The API rejection for AC-08 and AC-10 (403 or 404 when a student or an unassigned operator calls the slot API directly) is covered by the automated tests `TC-ACCESS-01` and `TC-ACCESS-03`. UAT-04 step 3 shows a real rejection in the UI.
+The UI can only show that the form and the other machine are hidden. The API rejection for AC-08 and AC-10 (403 or 404 when a student or an unassigned operator calls the slot API directly) is covered by the automated test `TC-ACCESS-01`. UAT-04 step 3 shows a real rejection in the UI.
 
 ### UAT-06: Bookings and sessions are kept (state and persistence)
 
