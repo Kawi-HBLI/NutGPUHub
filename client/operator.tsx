@@ -8,6 +8,7 @@ type Slot = {
   booking: { bookingId: number; studentUsername: string } | null;
 };
 type Load<T> = { state: 'loading' } | { state: 'error'; message: string } | { state: 'ready'; data: T };
+type Schedule = Load<Slot[]> | { state: 'no-date' };
 
 const hours = Array.from({ length: 24 }, (_, hour) => String(hour).padStart(2, '0'));
 
@@ -17,7 +18,7 @@ export function OperatorWorkspace() {
   const [machineId, setMachineId] = useState<number | null>(null);
   const [date, setDate] = useState(bangkokToday);
   const [hour, setHour] = useState('09');
-  const [slots, setSlots] = useState<Load<Slot[]>>({ state: 'loading' });
+  const [slots, setSlots] = useState<Schedule>({ state: 'loading' });
   const [pending, setPending] = useState(false);
   const [notice, setNotice] = useState<{ kind: 'error' | 'success'; text: string } | null>(null);
 
@@ -33,7 +34,12 @@ export function OperatorWorkspace() {
   }, []);
 
   const loadSchedule = useCallback(async () => {
-    if (machineId === null || !date) return;
+    if (machineId === null) return;
+    // An empty date has no schedule; drop the old day's slots instead of keeping them on screen (#60).
+    if (!date) {
+      setSlots({ state: 'no-date' });
+      return;
+    }
     setSlots({ state: 'loading' });
     const result = await apiRequest<Slot[]>(`/machines/${machineId}/slots?date=${encodeURIComponent(date)}`);
     setSlots(result.ok ? { state: 'ready', data: result.data } : { state: 'error', message: result.error.message });
@@ -87,7 +93,8 @@ export function OperatorWorkspace() {
         </form>
       </Card>
       <Card aria-labelledby="schedule-heading">
-        <div className="card-heading"><h2 id="schedule-heading">Schedule for {date}</h2><p>Bookings and open slots for the selected machine. Bangkok time.</p></div>
+        <div className="card-heading"><h2 id="schedule-heading">{date ? `Schedule for ${date}` : 'Schedule'}</h2><p>Bookings and open slots for the selected machine. Bangkok time.</p></div>
+        {slots.state === 'no-date' && <Alert tone="empty">Choose a date to see the schedule.</Alert>}
         {slots.state === 'loading' && <Alert tone="loading">Loading schedule…</Alert>}
         {slots.state === 'error' && <Alert tone="error">{slots.message}</Alert>}
         {slots.state === 'ready' && slots.data.length === 0 && <Alert tone="empty">No slots on this date.</Alert>}
