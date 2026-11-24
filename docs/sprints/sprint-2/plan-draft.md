@@ -125,11 +125,11 @@ Same as the Sprint 1 Product DoD, with these changes: merged into `sprint-2-stag
 
 ## 6. Issues, branches and order
 
-Tanadet (`Kawi-HBLI`) authors every PR. Thawat (`Chessuker`) reviews, approves and merges. PRs open as drafts and become ready only when tests pass. Issues #12 to #15 already exist; only the docs issues are new.
+PRs open as drafts and become ready only when tests pass. Issues #12 to #15 already exist; only the docs and release issues are new. Everything below must be on `main` and deployed by 29 November 2026, 23:59.
 
 | # | Work | Issue | Branch | Target | Gate |
 |---|---|---|---|---|---|
-| 1 | Lab 7 release `lab-7-staging` -> `main` | #20 / #63 | (existing) | `main` | Owned by the Lab 7 session; Sprint 2 staging is cut after it lands so CR-01 is in the base. |
+| 1 | Lab 7 release `lab-7-staging` -> `main` | #20 / #63 | (existing) | `main` | Lab 7 work, not part of this plan; `sprint-2-staging` is cut after it lands so CR-01 is in the base. |
 | 2 | S2-DOC Sprint 2 contracts, STS, decisions D-09 to D-11 | new | `docs/sprint-2-contracts` | `sprint-2-staging` | Merged before any F-05/F-06/F-07 code. |
 | 3 | F-05 cancel | #12 | `feature/12-cancel-booking` | `sprint-2-staging` | Migration and partial indexes first. |
 | 4 | F-07 close slot | #14 | `feature/14-close-slot` | `sprint-2-staging` | After F-05 merges (shared `bookings.ts` and migrations). |
@@ -140,28 +140,15 @@ Tanadet (`Kawi-HBLI`) authors every PR. Thawat (`Chessuker`) reviews, approves a
 | 9 | D2 documents: change register, SRS/features/SDS/traceability, completion and remaining-work tables | new DOC-02 | `docs/d2-baseline-update` | `sprint-3-staging` | Records the actual test results of the candidate. |
 | 10 | Candidate release, tag `d2-candidate` | REL-02 | `sprint-3-staging` | `main` | CI green, deploy run matched to the tag, smoke test and persistence check. |
 
-## 7. Schedule to 29 November
-
-Wednesday 25 November is today. Slots marked Lab 7 belong to the other session's work and are kept free here.
-
-| Day | Tanadet (author) | Thawat (review/merge) | Lab 7 room |
-|---|---|---|---|
-| Wed 25 | Team decides Q-01 to Q-05. Write `docs/sprint-2-contracts` and `docs/sprint-3-contracts`; open drafts. | Review and merge the Lab 7 release to `main`; create `sprint-2-staging` from it. | Lab 7 release PR and evidence capture. |
-| Thu 26 | Contracts reviewed and merged by midday. F-05: red tests (TC-CANCEL, TC-DB-01), migration, API, UI; PR by evening. | Review contracts (morning), F-05 (evening). | Evening: Lab 7 PDF draft. |
-| Fri 27 | F-07 red tests then implementation, PR by afternoon. Start F-06 red tests. | Review F-05 fixes and F-07. | None planned. |
-| Sat 28 | F-06 implementation and PR by midday. Release `sprint-2-staging` -> `main`, tag `sprint-2`, deploy and smoke test. Afternoon: F-08 red tests and API, PR on `sprint-3-staging`. | Review F-06, merge release, review F-08. | None planned. |
-| Sun 29 | Morning: DOC-02 documents with actual results; candidate release `d2-candidate` to `main`, deploy, post-deploy journey and persistence check, capture evidence. Afternoon: assemble D2 PDF. Submit D2 by 21:00. | Review DOC-02 and candidate release; check the PDF. | Afternoon: finish and submit the Lab 7 PDF. |
-
-## 8. Risks
+## 7. Risks
 
 | Risk | Mitigation |
 |---|---|
-| One reviewer for four feature PRs in four days. | Small PRs, one feature each; Thawat reviews twice a day; contracts reviewed in one PR. |
 | Partial-index migration breaks Sprint 1 exclusivity or the deployed DB. | TC-DB-01 and the full TC-BOOK suite run before F-05 merges; migrate a copy first; recheck NFR-02 after deploy. |
 | Close/book race leaves a booked closed slot. | Row lock in both transactions; TC-CLOSE-05. |
-| Lab 7 release slips and `sprint-2-staging` lacks CR-01. | If it is not on `main` by Thursday morning, cut `sprint-2-staging` from `lab-7-staging` and note it in the release record. |
+| Lab 7 release slips and `sprint-2-staging` lacks CR-01. | If it is not on `main` when F-05 is ready to start, cut `sprint-2-staging` from `lab-7-staging` and note it in the release record. |
 | F-08 slice crowds out documentation. | F-08 slice is API plus minimal page only; UI polish goes to the remaining-work plan. |
 
-## 9. After 29 November (outline for the remaining-work plan)
+## 8. After 29 November (outline for the remaining-work plan)
 
 Exams run 1 to 11 December, so work then stays small. F-08 UI and E2E (TC-E2E-08) by 6 Dec; UAT re-test of F-05 to F-08 by 9 Dec; final regression, video and release by 13 Dec. Owners and exact AC go into `docs/sprints/sprint-3/remaining-work.md`.
