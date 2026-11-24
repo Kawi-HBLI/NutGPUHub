@@ -28,7 +28,7 @@ The product scope covers slot publication, booking, cancellation, rescheduling, 
 | Slot | A published one-hour interval for one machine, represented as [startAt, startAt + one hour). Adjacent intervals do not overlap. |
 | Open slot | Published and not closed. Sprint 1 has no closed state, so every stored slot is open. Closure is planned for Sprint 2. |
 | Confirmed booking | A saved reservation for one student and slot. Every Sprint 1 booking is implicitly confirmed; cancellation states are planned for Sprint 2. |
-| Available slot | An open slot whose start is strictly after server time and which has no confirmed booking. Availability is a slot property. |
+| Available slot | An open slot whose start is more than 30 minutes after server time and which has no confirmed booking (revised by Lab 7 CR-01; previously: start strictly after server time). Availability is a slot property. |
 | Student eligibility | The student role, valid session and BR-04 also apply when reserving. A slot may appear available even if that student already holds another machine at the same hour; the booking request then rejects the conflict. |
 | Upcoming / started | Upcoming means server time < startAt; started means server time >= startAt. Passing time does not delete the booking. |
 
@@ -44,13 +44,13 @@ Sprint 1 transitions are unpublished slot -> published/unbooked slot -> booked s
 | FR-04 | A student can select a date and see open, unbooked slots that can still be booked (starting more than 30 minutes from now). | 1 |
 | FR-05 | A student can retrieve their own bookings. An operator can retrieve the schedule and bookings for assigned machines. | 1 |
 | FR-06 | A student can cancel their own booking before the slot starts. The slot becomes available again, and the cancellation remains in the booking history. | 2 |
-| FR-07 | A student can move their own upcoming booking to an available future slot. A successful move reserves the new slot and releases the original. | 2 |
+| FR-07 | A student can move their own upcoming booking to an available slot (more than 30 minutes ahead, as for a new booking). A successful move reserves the new slot and releases the original. | 2 |
 | FR-08 | An operator can close an upcoming, unbooked slot for an assigned machine. The system removes the slot from student availability and rejects booking requests for it. | 2 |
 | FR-09 | An operator can filter by assigned machine and date range and see counts of open slots, slots with confirmed bookings, and slots currently available to book. | 3 |
 
 ### Observable subrequirements
 
-FR-01 through FR-09 keep their original meaning and IDs. Dotted IDs below refine the existing scope for review and traceability; they do not represent additional features or retroactively change the original contracts. Sprint 1 rows describe the accepted F-01 to F-04 behavior. Sprint 2 and Sprint 3 rows remain planned, with detailed contracts required before implementation.
+FR-01 through FR-09 keep their original meaning and IDs, except as revised by Lab 7 CR-01 (FR-01, FR-04, FR-07 and their children). Dotted IDs below refine the existing scope for review and traceability; they do not represent additional features or retroactively change the original contracts. Sprint 1 rows describe the accepted F-01 to F-04 behavior. Sprint 2 and Sprint 3 rows remain planned, with detailed contracts required before implementation.
 
 | ID | Observable behavior | Feature | Sprint |
 |---|---|---|---|
@@ -75,7 +75,7 @@ FR-01 through FR-09 keep their original meaning and IDs. Dotted IDs below refine
 | FR-06.1 | A student can cancel only their own booking before the slot starts; reject attempts on another owner or a started booking. | F-05 | 2 |
 | FR-06.2 | Successful cancellation releases the slot and the student hour so another eligible booking can use them. | F-05 | 2 |
 | FR-06.3 | Retain the cancelled booking and cancellation history instead of deleting evidence of the reservation. | F-05 | 2 |
-| FR-07.1 | A student can request a move of their own upcoming booking to an open, unbooked future slot. | F-06 | 2 |
+| FR-07.1 | A student can request a move of their own upcoming booking to an open, unbooked slot that can still be booked (starting more than 30 minutes after server time). | F-06 | 2 |
 | FR-07.2 | A successful move reserves the target and releases the original as one transaction. | F-06 | 2 |
 | FR-07.3 | If the target cannot be reserved, retain the original confirmed booking; enforce slot and student-hour exclusivity during competing moves. | F-06 | 2 |
 | FR-08.1 | An operator can close only an upcoming, unbooked slot on an assigned machine. | F-07 | 2 |
@@ -85,7 +85,7 @@ FR-01 through FR-09 keep their original meaning and IDs. Dotted IDs below refine
 
 ## Business rules
 
-- **BR-01: Slot duration and exclusivity.** Slots start on the hour and last one hour. A machine can have only one slot with a given start time. Adjacent slots are allowed. A slot can have at most one confirmed booking, including when requests arrive concurrently. Only future slots can be opened or booked. The server determines whether the start time has been reached.
+- **BR-01: Slot duration and exclusivity.** Slots start on the hour and last one hour. A machine can have only one slot with a given start time. Adjacent slots are allowed. A slot can have at most one confirmed booking, including when requests arrive concurrently. Only future slots can be opened. Booking closes 30 minutes before the slot starts (Lab 7 CR-01; previously: until the start). The server determines whether the start time or the booking cutoff has been reached.
 - **BR-02: Role and record permissions.** The API checks the authenticated role and the relevant booking ownership or machine assignment for every protected operation.
 - **BR-03: Rescheduling.** The original booking remains confirmed if the system cannot reserve the replacement slot.
 - **BR-04: One machine per student per hour.** A student can hold at most one confirmed booking for a given start time, across all machines. A request for a second machine at the same hour is rejected, including when both requests arrive concurrently. There is no daily booking quota; the slots that operators open limit how much a student can book.
@@ -133,6 +133,7 @@ FR-01 through FR-09 keep their original meaning and IDs. Dotted IDs below refine
 | D-05 | Which GCP service runs the application? | Cloud Run, configured in Lab 5. | 2026-11-06 |
 | D-06 | What slot length is used? | One hour, starting on the hour. Recorded in BR-01. | 2026-11-06 |
 | D-07 | Who can change availability? | Only the operator assigned to the machine. Recorded in BR-02. | 2026-11-06 |
+| D-08 | Should booking close before the slot starts? | Yes, 30 minutes before, so the operator has time to prepare the machine. Team decision for Lab 7 CR-01; recorded in BR-01, FR-01, FR-04 and FR-07. | 2026-11-24 |
 
 ## Open questions for later contracts
 
@@ -153,3 +154,4 @@ These questions refine later-sprint behavior. They do not block the accepted Spr
 | 0.3 | 2026-11-06 | Thawat Boonsuk | Removed student IDs from the public repository after review. They appear only in the submitted PDF. |
 | 0.4 | 2026-11-07 | Tanadet Nuchaikaew | Post-F-04 refinement for peer review: retained parent IDs, added observable child requirements, state vocabulary, assumption register and later-sprint questions. No runtime scope change. |
 | 0.5 | 2026-11-24 | Tanadet Nuchaikaew | Lab 7 CR-01: booking closes 30 minutes before the slot starts (FR-01, FR-01.1, FR-04, FR-04.1). See `docs/labs/lab-07/change-request.md`. |
+| 0.6 | 2026-11-24 | Tanadet Nuchaikaew | PR #64 review: revised the Available slot definition, BR-01, FR-07 and FR-07.1 for CR-01; added decision D-08; noted the CR-01 exception to the original-meaning statement. |
