@@ -67,17 +67,17 @@ The student chooses a date, selects an available slot, and submits one booking r
 
 | API | Contract |
 |---|---|
-| `GET /api/v1/slots?date=YYYY-MM-DD` | Return `200` with the future, unbooked slots for the selected Bangkok calendar date, ordered by start time. Each entry contains `slotId`, `machineId`, `machineCode`, `startAt`, and `endAt`. Return an empty list when appropriate and `400` with `INVALID_DATE` for a missing or invalid date. |
-| `POST /api/v1/bookings` | Accept `slotId` as a positive integer. Return `201` with `bookingId` and `slotId`, and a `Location` header for `/api/v1/bookings/{bookingId}`. Return `400` with `INVALID_SLOT_ID` for an invalid ID and `404` with `SLOT_NOT_FOUND` for an unknown slot. Return `409` with `SLOT_ALREADY_STARTED`, `SLOT_ALREADY_BOOKED`, or `STUDENT_TIME_CONFLICT` when the student already holds another machine at that hour. |
+| `GET /api/v1/slots?date=YYYY-MM-DD` | Return `200` with the unbooked slots for the selected Bangkok calendar date that start more than 30 minutes after the server time, ordered by start time. Each entry contains `slotId`, `machineId`, `machineCode`, `startAt`, and `endAt`. Return an empty list when appropriate and `400` with `INVALID_DATE` for a missing or invalid date. |
+| `POST /api/v1/bookings` | Accept `slotId` as a positive integer. Return `201` with `bookingId` and `slotId`, and a `Location` header for `/api/v1/bookings/{bookingId}`. Return `400` with `INVALID_SLOT_ID` for an invalid ID and `404` with `SLOT_NOT_FOUND` for an unknown slot. Return `409` with `BOOKING_CLOSED` from 30 minutes before the start until the start, `SLOT_ALREADY_STARTED` at or after the start, `SLOT_ALREADY_BOOKED`, or `STUDENT_TIME_CONFLICT` when the student already holds another machine at that hour. |
 | `GET /api/v1/bookings/{bookingId}` | Return `200` with the student's own `bookingId`, `slotId`, `machineId`, `machineCode`, `startAt`, and `endAt`. Return `404` with `BOOKING_NOT_FOUND` for an invalid or unknown booking ID or one owned by another student. |
 
 Each F-03 route requires a valid session (`401 AUTH_REQUIRED`) and the student role (`403 FORBIDDEN`). These guards apply to the matching routes, so unrelated API paths can reach the API's `404 NOT_FOUND` handler.
 
 - **AC-01:** Booking an available slot creates a reservation that the student can retrieve as its owner.
 - **AC-02:** When two students request the same slot concurrently, one request succeeds and one is rejected. The database stores exactly one booking for the successful account.
-- **AC-03:** A request at or after the slot start is rejected and creates no booking.
+- **AC-03:** A request at or after `startAt − 30 minutes` is rejected and creates no booking: `409 BOOKING_CLOSED` before the start, `409 SLOT_ALREADY_STARTED` at or after it. A request one millisecond earlier than `startAt − 30 minutes` succeeds. *(Revised by Lab 7 CR-01; previously: a request at or after the slot start is rejected.)*
 - **AC-09:** A direct request for another student's booking returns `404` without disclosing booking data.
-- **AC-11:** The selected date shows future, unbooked slots available to reserve.
+- **AC-11:** The selected date shows unbooked slots that start more than 30 minutes after the server time. A slot starting exactly 30 minutes after the server time is not shown. *(Revised by Lab 7 CR-01; previously: future, unbooked slots.)*
 - **AC-12:** A booking request without a valid session receives `401`. A signed-in operator receives `403`. Neither request creates a booking.
 - **AC-13:** An invalid slot ID returns `400` and an unknown slot ID returns `404`. Neither request creates a booking.
 - **AC-19:** A student who holds a booking at 14:00 on `GPU-01` and requests the 14:00 slot on `GPU-02` receives `409` with `STUDENT_TIME_CONFLICT`. When both requests are sent concurrently, exactly one booking is stored.
@@ -136,3 +136,4 @@ The Sprint 1 release also requires the integrated browser journeys, local setup 
 | 0.5 | 2026-11-07 | Thawat Boonsuk | F-04 implemented: recorded the My Bookings and schedule booking fields, and moved the F-02 operator guards to individual routes. |
 | 0.6 | 2026-11-07 | Tanadet Nuchaikaew | Clarified F-03 booking detail fields and linked the post-F-04 requirement refinement and execution evidence without renumbering AC. |
 | 0.7 | 2026-11-07 | Tanadet Nuchaikaew | PR #21 review: consolidated the execution-record reference in the introduction. |
+| 0.8 | 2026-11-24 | Tanadet Nuchaikaew | Lab 7 CR-01: revised AC-03 and AC-11 and the F-03 `GET /api/v1/slots` and `POST /api/v1/bookings` rows for the 30-minute booking cutoff and `BOOKING_CLOSED`. |
