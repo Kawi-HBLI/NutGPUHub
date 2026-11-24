@@ -111,16 +111,54 @@ test('TC-BOOK-03 rejects invalid, unknown and started slots without saving', asy
   }
 });
 
-test('TC-BOOK-03 accepts a slot one millisecond before it starts', async () => {
-  const upcoming = await slot('2030-01-01T15:00:00+07:00');
-  // The sessions were created at 14:00 with SESSION_TTL_MINUTES=60, so they are still valid here.
-  current = upcoming.startAt.getTime() - 1;
+// CR-01 (#63): booking closes 30 minutes before the slot starts. These tests move the clock to
+// their own date, so they sign in again at the new time; the shared cookies expire at 15:00 on 2030-01-01.
+async function signInAt(time: number, account: number) {
+  current = time;
+  const response = await request(app).post('/api/v1/auth/login').set('Origin', origin)
+    .send({ username: names[account], password }).expect(200);
+  return response.headers['set-cookie'][0].split(';', 1)[0] as string;
+}
+
+test('TC-BOOK-03 accepts a booking one millisecond before booking closes', async () => {
+  const upcoming = await slot('2032-03-01T14:00:00+07:00');
   try {
-    await book(upcoming.id).expect(201);
+    const cookie = await signInAt(Date.parse('2032-03-01T13:29:59.999+07:00'), 0);
+    await book(upcoming.id, cookie).expect(201);
   } finally {
     current = now;
   }
   expect(await database.booking.count({ where: { slotId: upcoming.id, studentId: users[0] } })).toBe(1);
+});
+
+test('TC-BOOK-03 rejects bookings from 30 minutes before the start with BOOKING_CLOSED', async () => {
+  const closing = await slot('2032-03-01T16:00:00+07:00');
+  try {
+    for (const time of ['2032-03-01T15:30:00.000+07:00', '2032-03-01T15:59:59.999+07:00']) {
+      const cookie = await signInAt(Date.parse(time), 0);
+      const result = await book(closing.id, cookie).expect(409);
+      expect(result.body.error.code).toBe('BOOKING_CLOSED');
+      expect(result.body.error.message).toBe('Booking closes 30 minutes before the slot starts.');
+      expect(await database.booking.count({ where: { slotId: closing.id } })).toBe(0);
+    }
+  } finally {
+    current = now;
+  }
+});
+
+test('TC-BOOK-03 checks the cutoff before an existing booking on the same slot', async () => {
+  // Booked by student A in the 1 ms test above; student B tries it inside the 30 minutes.
+  const held = await database.slot.findFirstOrThrow({
+    where: { machineId: machines[0], startAt: new Date('2032-03-01T14:00:00+07:00') },
+  });
+  try {
+    const cookie = await signInAt(Date.parse('2032-03-01T13:45:00+07:00'), 1);
+    const result = await book(held.id, cookie).expect(409);
+    expect(result.body.error.code).toBe('BOOKING_CLOSED');
+  } finally {
+    current = now;
+  }
+  expect(await database.booking.count({ where: { slotId: held.id } })).toBe(1);
 });
 
 test('TC-SLOT-02 excludes started slots from availability', async () => {
@@ -131,6 +169,21 @@ test('TC-SLOT-02 excludes started slots from availability', async () => {
   expect(listed).toEqual([nextHour.id]);
   expect(listed).not.toContain(pastHour.id);
   expect(listed).not.toContain(startsNow.id);
+});
+
+test('TC-SLOT-02 lists a slot until booking closes 30 minutes before it starts', async () => {
+  const cutoff = await slot('2032-03-02T14:00:00+07:00', machines[1]);
+  const listedAt = async (time: string) => {
+    const cookie = await signInAt(Date.parse(time), 0);
+    const result = await request(app).get('/api/v1/slots?date=2032-03-02').set('Cookie', cookie).expect(200);
+    return (result.body as { slotId: number }[]).map(row => row.slotId);
+  };
+  try {
+    expect(await listedAt('2032-03-02T13:29:59.999+07:00')).toContain(cutoff.id);
+    expect(await listedAt('2032-03-02T13:30:00.000+07:00')).not.toContain(cutoff.id);
+  } finally {
+    current = now;
+  }
 });
 
 test('TC-SLOT-02 filters availability by Bangkok date and excludes booked slots', async () => {
