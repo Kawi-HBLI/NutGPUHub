@@ -32,7 +32,7 @@ Status: contract revision for teammate review. No code is changed until this doc
 
 ### Scope and invalid cases
 
-- Applies to `POST /api/v1/bookings` and `GET /api/v1/slots`. The API decides; the UI only shows the API result.
+- Applies to `POST /api/v1/bookings` and `GET /api/v1/slots` now, and to the reschedule target when F-06 is built in Sprint 2 (see the FR-07 note under Impact). The API decides; the UI only shows the API result.
 - The cutoff is a fixed 30 minutes in Sprint 1 code. It is not configurable per machine or per role.
 - Checks before the cutoff are unchanged and keep their order: `400 INVALID_SLOT_ID`, `404 SLOT_NOT_FOUND`, then the time checks, then `409 SLOT_ALREADY_BOOKED` and `409 STUDENT_TIME_CONFLICT`.
 - Access is unchanged: only a signed-in student can book (`401` without a session, `403` for an operator). The cutoff does not reveal anything about other students' bookings.
