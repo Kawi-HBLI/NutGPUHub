@@ -13,6 +13,9 @@ function isCalendarDate(year: number, month: number, day: number): boolean {
 
 export const slotLengthMs = hourMs;
 
+/** CR-01 (#63): students can book a slot only until 30 minutes before it starts. */
+export const bookingCutoffMs = 30 * 60_000;
+
 /** The UTC instants where a Bangkok calendar date starts and ends, or null for an invalid date. */
 export function bangkokDayRange(date: unknown): { start: Date; end: Date } | null {
   if (typeof date !== 'string') return null;

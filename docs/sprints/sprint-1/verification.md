@@ -24,7 +24,7 @@ The rows below distinguish implemented assertions from the fuller planned scenar
 |---|---|---|---|
 | AC-01 | TC-BOOK-01, TC-E2E-01 | `tests/bookings.test.ts`: saved ID, Location and owner retrieval; `e2e/bookings.spec.ts`: book then reload My Bookings. | Passed. |
 | AC-02 | TC-BOOK-02, TC-E2E-02 | `tests/bookings.test.ts`: concurrent students get one 201 and one 409, one row and correct owner; browser stale-availability conflict. | Passed. |
-| AC-03 | TC-BOOK-03 | `tests/bookings.test.ts`: after-start (13:00 at a 14:00 clock) and exactly-at-start requests return 409 `SLOT_ALREADY_STARTED` and save nothing; a request 1 ms before start returns 201. | Passed on the QA-01 branch (see below). |
+| AC-03 | TC-BOOK-03 | `tests/bookings.test.ts`: after-start (13:00 at a 14:00 clock) and exactly-at-start requests return 409 `SLOT_ALREADY_STARTED` and save nothing. CR-01 (#63): 13:29:59.999 books a 14:00 slot (one booking); 15:30:00.000 and 15:59:59.999 return 409 `BOOKING_CLOSED` for a 16:00 slot and save nothing; an already booked slot inside the window returns `BOOKING_CLOSED`. | Started-slot checks: passed before and after CR-01. CR-01: the two `BOOKING_CLOSED` tests failed on the pre-change code (CI run 45386361661, `92d9f93`) and passed after the change (CI run 45386659475, `4cc8a89`); the 13:29:59.999 test passed on both, because the old rule also allowed it. |
 | AC-04 | TC-SLOT-01 | `tests/slots.test.ts`: consecutive 14:00/15:00 slots, duplicate rejected, two stored slots. | Passed. |
 | AC-05 | TC-SLOT-01, TC-TIME-01 | `tests/slots.test.ts` and `tests/time.test.ts`: off-hour rejection and whole-hour/offset parsing. | Passed. |
 | AC-06 | TC-AUTH-01 | `tests/auth.test.ts`: both roles, generic wrong-password/unknown-user error and unchanged session count. | Passed. |
@@ -32,7 +32,7 @@ The rows below distinguish implemented assertions from the fuller planned scenar
 | AC-08 | TC-ACCESS-01 | `tests/slots.test.ts`: student slot creation rejected without changes to the tested schedule. | Passed. |
 | AC-09 | TC-BOOK-01, TC-ACCESS-02 | `tests/bookings.test.ts` and `tests/view-bookings.test.ts`: another owner's detail returns 404 with no booking data. | Passed. |
 | AC-10 | TC-ACCESS-01, TC-ACCESS-02 | `tests/slots.test.ts` and `tests/view-bookings.test.ts`: unassigned operator cannot open/read the machine schedule. | Passed. |
-| AC-11 | TC-SLOT-02, TC-TIME-01 | `tests/bookings.test.ts`: booked and other-date slots excluded, Bangkok midnight slots included; a separate test excludes past-hour and starts-now slots and keeps the next hour; `tests/availability-empty-day.test.ts`: a valid day without slots returns `200 []` from a freshly migrated PostgreSQL schema that no other test writes to, then lists a slot once one is added; `tests/time.test.ts`: UTC bounds. | Passed on the QA-01 branch. The original test is renamed to the assertions it makes (date and booked filtering). |
+| AC-11 | TC-SLOT-02, TC-TIME-01 | `tests/bookings.test.ts`: booked and other-date slots excluded, Bangkok midnight slots included; a separate test excludes past-hour and starts-now slots and keeps the next hour; `tests/availability-empty-day.test.ts`: a valid day without slots returns `200 []` from a freshly migrated PostgreSQL schema that no other test writes to, then lists a slot once one is added; `tests/time.test.ts`: UTC bounds. CR-01 (#63): a 14:00 slot is listed at 13:29:59.999 and absent at 13:30:00.000. | Passed; the CR-01 cutoff test failed on the pre-change code (run 45386361661) and passed after the change (run 45386659475). |
 | AC-12 | TC-ACCESS-03 | `tests/bookings.test.ts`: anonymous/operator booking requests return 401/403 and leave a valid future slot unbooked; protected reads reject the wrong role. | Passed. |
 | AC-13 | TC-BOOK-03 | `tests/bookings.test.ts`: missing, invalid and unknown IDs return 400/404, and the suite's booking count is checked unchanged after every rejected request. | Passed on the QA-01 branch. |
 | AC-14 | TC-ACCESS-02, TC-E2E-01 | `tests/view-bookings.test.ts`: assigned schedule includes correct booking/user and null for a free slot; browser operator sees student username. | Passed. |
@@ -65,7 +65,7 @@ The behavior already existed, so these tests passed when added and are not TDD r
 |---|---|
 | Availability no longer filters out started slots | TC-SLOT-02 started-slot test |
 | Booking allowed when the slot starts exactly now | TC-BOOK-03 rejection test |
-| Booking rejected 1 ms before start | TC-BOOK-03 1 ms test (and the TC-SLOT-02 started-slot test, which expects that slot to be booked) |
+| Booking rejected 1 ms before start | TC-BOOK-03 1 ms test (and the TC-SLOT-02 started-slot test, which expects that slot to be booked). Superseded by CR-01: the 1 ms test was replaced by the cutoff tests, whose RED run on the pre-change code is real red/green evidence. |
 | My Bookings ordered by booking ID instead of slot start | AC-18 ordering test |
 
 The empty-day test runs in its own schema because the shared test database may hold other fixtures' slots on any date (PR #22 review). It still passed after an unrelated slot was inserted on 2031-01-08 in the shared schema; that slot was removed afterwards and no isolated schema was left behind. The no-write assertions were not mutation-checked. Logs are under `evidence/qa-01/`. These results identify the tested commit above, not the final release candidate, which still needs its own run.
@@ -101,3 +101,4 @@ QA-01 closed after peer approval and merge of PR #26. PR #27 then merged Sprint 
 | 0.7 | 2026-11-08 | Tanadet Nuchaikaew | Recorded BUG-01 development-routing reproduction, regression coverage and branch verification without closing QA-01. |
 | 0.8 | 2026-11-09 | Tanadet Nuchaikaew | Recorded clean staging setup, integrated test execution and Part F demonstrations for QA-01 peer review. |
 | 0.9 | 2026-11-09 | Tanadet Nuchaikaew | Linked the verified main release and closed QA-01 evidence. |
+| 0.10 | 2026-11-24 | Tanadet Nuchaikaew | Lab 7 CR-01 (#63): AC-03 and AC-11 rows record the 30-minute cutoff tests and their RED/GREEN CI runs; noted the replaced 1 ms check. |
