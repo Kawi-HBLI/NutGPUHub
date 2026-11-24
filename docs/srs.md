@@ -38,10 +38,10 @@ Sprint 1 transitions are unpublished slot -> published/unbooked slot -> booked s
 
 | ID | Requirement | Sprint |
 |---|---|---|
-| FR-01 | A signed-in student can reserve an open, unbooked slot before its start time. The system confirms the booking after saving it. | 1 |
+| FR-01 | A signed-in student can reserve an open, unbooked slot until booking closes 30 minutes before its start time. The system confirms the booking after saving it. | 1 |
 | FR-02 | Users can sign in, see their current account and role, and sign out. | 1 |
 | FR-03 | An operator can open one-hour slots for an assigned machine. A machine can have several slots on the same day. | 1 |
-| FR-04 | A student can select a date and see open, unbooked slots that have yet to start. | 1 |
+| FR-04 | A student can select a date and see open, unbooked slots that can still be booked (starting more than 30 minutes from now). | 1 |
 | FR-05 | A student can retrieve their own bookings. An operator can retrieve the schedule and bookings for assigned machines. | 1 |
 | FR-06 | A student can cancel their own booking before the slot starts. The slot becomes available again, and the cancellation remains in the booking history. | 2 |
 | FR-07 | A student can move their own upcoming booking to an available future slot. A successful move reserves the new slot and releases the original. | 2 |
@@ -54,7 +54,7 @@ FR-01 through FR-09 keep their original meaning and IDs. Dotted IDs below refine
 
 | ID | Observable behavior | Feature | Sprint |
 |---|---|---|---|
-| FR-01.1 | A signed-in student can submit a booking for an open, unbooked future slot. The API takes the student identity from the session. | F-03 | 1 |
+| FR-01.1 | A signed-in student can submit a booking for an open, unbooked slot while the server time is earlier than 30 minutes before its start. The API takes the student identity from the session. | F-03 | 1 |
 | FR-01.2 | Confirm only after saving the booking; return its ID and a link to retrieve the saved result. | F-03 | 1 |
 | FR-01.3 | Reject a slot already booked by another request, including concurrent attempts, without creating a second booking. | F-03 | 1 |
 | FR-01.4 | Reject a second machine for the same student and start time, including concurrent attempts. | F-03 | 1 |
@@ -65,7 +65,7 @@ FR-01 through FR-09 keep their original meaning and IDs. Dotted IDs below refine
 | FR-03.1 | An operator can list and choose only machines assigned to that operator. | F-02 | 1 |
 | FR-03.2 | An assigned operator can open a slot strictly after server time, on a whole Bangkok hour, with an end exactly one hour later. | F-02 | 1 |
 | FR-03.3 | Reject a duplicate machine/start pair while permitting adjacent slots and several rounds on the same date. | F-02 | 1 |
-| FR-04.1 | A student can select a Bangkok calendar date and retrieve only open, unbooked slots strictly after server time within that date. | F-03 | 1 |
+| FR-04.1 | A student can select a Bangkok calendar date and retrieve only open, unbooked slots within that date that start strictly later than the server time plus 30 minutes. | F-03 | 1 |
 | FR-04.2 | Show each available slot with its machine code and one-hour time range, ordered by start time. A valid date without availability returns an empty list and an empty UI state. | F-03 | 1 |
 | FR-04.3 | Reject missing or invalid calendar dates rather than normalizing impossible dates to another day. | F-03 | 1 |
 | FR-05.1 | A student can list only their own saved bookings, ordered by slot start, with machine and slot times; show an empty state when none exist. | F-04 | 1 |
@@ -152,3 +152,4 @@ These questions refine later-sprint behavior. They do not block the accepted Spr
 | 0.2 | 2026-11-06 | Thawat Boonsuk | Added document header, BR-04, NFR-03 and the decision log after team review. Sprint 1 seed now uses two machines so BR-04 can be tested. |
 | 0.3 | 2026-11-06 | Thawat Boonsuk | Removed student IDs from the public repository after review. They appear only in the submitted PDF. |
 | 0.4 | 2026-11-07 | Tanadet Nuchaikaew | Post-F-04 refinement for peer review: retained parent IDs, added observable child requirements, state vocabulary, assumption register and later-sprint questions. No runtime scope change. |
+| 0.5 | 2026-11-24 | Tanadet Nuchaikaew | Lab 7 CR-01: booking closes 30 minutes before the slot starts (FR-01, FR-01.1, FR-04, FR-04.1). See `docs/labs/lab-07/change-request.md`. |

@@ -68,6 +68,7 @@ Every baseline FR, its observable children, BR and NFR has a feature or responsi
 | 2026-11-06 | Added NFR-03 and fixed the session lifetime at one hour. | Team decisions D-03 and D-04. | NFR-03, AC-16, AC-23, `TC-AUTH-03`, `TC-AUTH-04` |
 | 2026-11-06 | Split the student booking list out of AC-09 into AC-18. | AC-09 was listed under both F-03 and F-04. | AC-09, AC-18, `TC-ACCESS-02` |
 | 2026-11-06 | Added AC-20 to AC-22 for malformed input and unknown resources. | The contracts specified these errors without acceptance criteria. | AC-20, AC-21, AC-22, `TC-VALID-01` |
+| 2026-11-24 | Lab 7 CR-01: booking closes 30 minutes before the slot starts. | Operators need time to prepare the machine before a booked hour. Approval step waived by the instructor; see the [change request](labs/lab-07/change-request.md). | FR-01, FR-01.1, FR-04, FR-04.1, F-03, AC-03, AC-11, `TC-BOOK-03`, `TC-SLOT-02`, `TC-TIME-01` |
 
 ## Revision awaiting peer review
 
@@ -81,3 +82,4 @@ The November 7 post-F-04 refinement keeps FR-01 to FR-09, F-01 to F-08 and AC-01
 | 0.2 | 2026-11-06 | Thawat Boonsuk | Added BR-04 and NFR-03 rows, new AC and test IDs, and the coverage gap and approved change sections. |
 | 0.3 | 2026-11-07 | Tanadet Nuchaikaew | Added child-requirement traceability and separated planned verification, execution evidence and pending peer review. |
 | 0.4 | 2026-11-07 | Tanadet Nuchaikaew | PR #21 review: replaced repeated evidence qualifications with links to the central verification record. |
+| 0.5 | 2026-11-24 | Tanadet Nuchaikaew | Lab 7 CR-01: recorded the approved change in Approved changes. |
