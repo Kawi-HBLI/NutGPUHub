@@ -1,6 +1,6 @@
 # Lab 7 change request CR-01: booking closes 30 minutes before the slot starts
 
-Status: contract revision for teammate review. No code is changed until this document and the linked specification edits are approved.
+Status: contract reviewed and merged in #64 (`312986f`, 2026-11-24) before any code change. Implemented in #65.
 
 ## Request
 
@@ -84,7 +84,7 @@ The full Vitest suite (`npm test`) and Playwright suite (`npx playwright test`) 
 
 ## Test-first plan
 
-1. Revise `TC-BOOK-03` and `TC-SLOT-02` to assert the new rule, including the 13:29:59.999 and 13:30:00.000 boundaries and an already booked slot inside the window, and commit them before any code change. Slots must start on the hour (`slots_start_on_the_hour`), so the boundary tests keep one whole-hour slot and move the injected clock. New fixtures use their own date, so the existing started-slot `TC-SLOT-02` test, which relies on machine A's 15:00 slot being booked by the 1 ms test, keeps its data.
+1. Revise `TC-BOOK-03` and `TC-SLOT-02` to assert the new rule, including the 13:29:59.999 and 13:30:00.000 boundaries and an already booked slot inside the window, and commit them before any code change. Slots must start on the hour (`slots_start_on_the_hour`), so the boundary tests keep one whole-hour slot and move the injected clock. New fixtures use their own date and sign in again after moving the clock.
 2. Run CI on that commit against the pre-change code: the revised assertions must fail because booking is still accepted inside the 30 minutes and the slot is still listed (RED).
 3. Change `server/bookings.ts`; the same tests pass with the full suites (GREEN).
 4. In the code PR, update `docs/sprints/sprint-1/verification.md` (AC-03 and AC-11 rows and the mutation table) to the new results.

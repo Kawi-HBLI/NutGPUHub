@@ -147,13 +147,13 @@ test('TC-BOOK-03 rejects bookings from 30 minutes before the start with BOOKING_
 });
 
 test('TC-BOOK-03 checks the cutoff before an existing booking on the same slot', async () => {
-  // Booked by student A in the 1 ms test above; student B tries it inside the 30 minutes.
-  const held = await database.slot.findFirstOrThrow({
-    where: { machineId: machines[0], startAt: new Date('2032-03-01T14:00:00+07:00') },
-  });
+  // Own slot: student A books it before the cutoff, then student B tries it inside the 30 minutes.
+  const held = await slot('2032-03-01T18:00:00+07:00');
   try {
-    const cookie = await signInAt(Date.parse('2032-03-01T13:45:00+07:00'), 1);
-    const result = await book(held.id, cookie).expect(409);
+    const cookieA = await signInAt(Date.parse('2032-03-01T17:00:00+07:00'), 0);
+    await book(held.id, cookieA).expect(201);
+    const cookieB = await signInAt(Date.parse('2032-03-01T17:45:00+07:00'), 1);
+    const result = await book(held.id, cookieB).expect(409);
     expect(result.body.error.code).toBe('BOOKING_CLOSED');
   } finally {
     current = now;
