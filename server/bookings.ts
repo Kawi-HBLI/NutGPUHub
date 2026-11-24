@@ -3,7 +3,7 @@ import express from 'express';
 import { asyncRoute, currentAccount, sendError } from './http.js';
 import { slotView } from './machines.js';
 import type { createSessionGuard } from './session.js';
-import { bangkokDayRange } from './time.js';
+import { bangkokDayRange, bookingCutoffMs } from './time.js';
 
 type Guard = ReturnType<typeof createSessionGuard>;
 
@@ -18,7 +18,8 @@ export function createStudentRouter(database: PrismaClient, clock: () => number,
       return;
     }
     const slots = await database.slot.findMany({
-      where: { startAt: { gte: day.start, lt: day.end, gt: new Date(clock()) }, bookings: { none: {} } },
+      // Only slots that can still be booked: the start is more than 30 minutes away (AC-11, CR-01).
+      where: { startAt: { gte: day.start, lt: day.end, gt: new Date(clock() + bookingCutoffMs) }, bookings: { none: {} } },
       include: { machine: { select: { code: true } } },
       orderBy: [{ startAt: 'asc' }, { id: 'asc' }],
     });
@@ -36,8 +37,14 @@ export function createStudentRouter(database: PrismaClient, clock: () => number,
       sendError(response, 404, 'SLOT_NOT_FOUND', 'The slot does not exist.');
       return;
     }
-    if (slot.startAt.getTime() <= clock()) {
+    const now = clock();
+    if (slot.startAt.getTime() <= now) {
       sendError(response, 409, 'SLOT_ALREADY_STARTED', 'This slot has already started.');
+      return;
+    }
+    // Checked before the insert, so a booked slot inside the window also gets BOOKING_CLOSED (AC-03, CR-01).
+    if (slot.startAt.getTime() - bookingCutoffMs <= now) {
+      sendError(response, 409, 'BOOKING_CLOSED', 'Booking closes 30 minutes before the slot starts.');
       return;
     }
     try {
