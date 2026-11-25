@@ -1,0 +1,44 @@
+# Sprint 2 Software Test Specification
+
+Test design for the [Sprint 2 feature contracts](feature-contracts.md) (version 0.1), written before implementation. Execution results go in `verification.md` once the tests run; a row here is a plan, not evidence.
+
+## Common fixtures
+
+The Sprint 1 fixtures apply: a separate migrated PostgreSQL test database, students A and B, operator A assigned to `GPU-01`, operator B assigned to `GPU-02` and not to `GPU-01`, isolated data per test, and an injected fixed clock. In the examples the clock is `T` and the slot under test starts at `T + 2 h` on the hour unless the row says otherwise. Slots must start on the hour, so boundary tests keep one whole-hour slot and move the clock, as in the CR-01 tests. Each fixture that moves the clock uses its own date and signs in again after the move. Concurrent tests issue both requests before awaiting either, then inspect the database.
+
+| Test and level | Covers | Setup and action | Expected result |
+|---|---|---|---|
+| TC-DB-01 · Database | BR-01, BR-04, shared data | Run all migrations on a database holding Sprint 1 rows. Read the rows. Insert directly: two `confirmed` bookings for one slot; two `confirmed` bookings for one student and hour on different machines; one `cancelled` and one `confirmed` for one slot; a `cancelled` row without `cancelled_at`. | Existing rows are `confirmed` with `cancelled_at` null. The two confirmed pairs fail on `bookings_confirmed_slot_key` and `bookings_confirmed_student_hour_key`. The cancelled-plus-confirmed pair succeeds. The row without `cancelled_at` fails its check constraint. |
+| TC-CANCEL-01 · API and database | AC-24 | A books a slot, then cancels it at `T`. Read the detail and My Bookings. | `200` with `status: "cancelled"` and `cancelledAt = T`. The row still exists; detail and list return it with the same fields. |
+| TC-CANCEL-02 · API | AC-25 | A holds a booking. B cancels it; operator A cancels it; a request without a cookie cancels it. | `404 BOOKING_NOT_FOUND` with no booking data, `403 FORBIDDEN`, `401 AUTH_REQUIRED`. The booking stays `confirmed`. |
+| TC-CANCEL-03 · API and database | AC-26 | One slot starting at 14:00. A books it earlier, then the clock moves. Cancel at 14:00:00.000, at 14:05, and (fresh booking) at 13:59:59.999 and at 13:45. | 14:00 and 14:05 return `409 BOOKING_ALREADY_STARTED` and change nothing. 13:59:59.999 and 13:45 return `200`. |
+| TC-CANCEL-04 · API and database | AC-27 | 14:00 slots on `GPU-01` and `GPU-02`. A books `GPU-01` 14:00 and cancels. B books `GPU-01` 14:00. A books `GPU-02` 14:00. Operator A reads the schedule between the cancel and B's booking. | Both bookings return `201`. The schedule shows `GPU-01` 14:00 with `booking: null` after the cancel and B's booking afterwards. |
+| TC-CANCEL-05 · API and database | AC-28 | A cancels a booking twice in sequence. Fresh booking: A sends two cancels concurrently. | Sequential: second returns `409 BOOKING_NOT_CONFIRMED`, `cancelledAt` unchanged. Concurrent: one `200`, one `409`; one `cancelled_at` value stored. |
+| TC-CANCEL-06 · System (restart) | AC-29 | Extend `npm run verify:restart`: create and cancel a booking, restart the server process on the same database, read it as A. | The booking returns `status: "cancelled"` and the same `cancelledAt`. |
+| TC-MOVE-01 · API and database | AC-30 | A books `GPU-01` 14:00, then moves to `GPU-01` 16:00. B books `GPU-01` 14:00. | Move returns `201` with a new `bookingId`, `replacesBookingId` = original, and a `Location`. Original is `rescheduled` and lists `replacedByBookingId`. B's booking returns `201`. |
+| TC-MOVE-02 · API and database | AC-31 | B holds 16:00. A, holding 14:00, moves to 16:00. | `409 SLOT_ALREADY_BOOKED`. A's 14:00 booking is `confirmed`; no new row; booking count unchanged. |
+| TC-MOVE-03 · API and database | AC-32 | A holds `GPU-01` 14:00 and `GPU-02` 16:00. A moves the 14:00 booking to `GPU-01` 16:00. Then A moves the 14:00 booking to `GPU-02` 14:00. | First move `409 STUDENT_TIME_CONFLICT`, original kept. Second move `201`: same hour, other machine. |
+| TC-MOVE-04 · API and database | AC-33 | A holds a 16:00 booking. Target slot at 14:00; move at 13:29:59.999, 13:30:00.000 and 14:00:00.000 (fresh original each time). Then set the clock to 16:00 and move the 16:00 booking. | 13:29:59.999 returns `201`; 13:30:00.000 returns `409 BOOKING_CLOSED`; 14:00 returns `409 SLOT_ALREADY_STARTED`; the started original returns `409 BOOKING_ALREADY_STARTED`. Every rejected move leaves the original confirmed. |
+| TC-MOVE-05 · API | AC-34 | B moves A's booking; operator A calls the route; no cookie; A moves a cancelled booking and a rescheduled booking; A sends `slotId: "x"`, an unknown slot ID and its own current slot. | `404 BOOKING_NOT_FOUND`, `403`, `401`, `409 BOOKING_NOT_CONFIRMED` twice, `400 INVALID_SLOT_ID`, `404 SLOT_NOT_FOUND`, `409 SAME_SLOT`. No row changes. |
+| TC-MOVE-06 · API and database | AC-35 | A holds 14:00 and B holds 15:00; both move to 16:00 concurrently. Then A sends two concurrent moves of one booking to two different free slots. | First pair: one `201`, one `409`; the loser's original is `confirmed`; one confirmed booking on 16:00. Second pair: one `201`, one `409 BOOKING_NOT_CONFIRMED`; exactly one replacement exists. |
+| TC-MOVE-07 · API | AC-36 | Operator A closes 16:00. A moves a 14:00 booking to it. | `409 SLOT_CLOSED`; original kept. Needs F-07. |
+| TC-CLOSE-01 · API and database | AC-37 | Operator A closes an upcoming unbooked `GPU-01` slot and reads the schedule. Then A books another slot and cancels; operator A closes that slot. | Both closes return `200` with `closedAt = T`; the schedule shows `closedAt` set and `booking: null`. |
+| TC-CLOSE-02 · API | AC-38 | Close a slot, then request availability for its date and book it as A. | The slot is absent from availability. Booking returns `409 SLOT_CLOSED`; no booking row. |
+| TC-CLOSE-03 · API and database | AC-39 | Close a booked slot; close a closed slot; one slot at 14:00, close at 14:00:00.000 and (fresh slot) at 13:59:59.999. | `409 SLOT_ALREADY_BOOKED`, `409 SLOT_CLOSED`, `409 SLOT_ALREADY_STARTED`, then `200`. Rejected requests leave `closed_at` unchanged. |
+| TC-CLOSE-04 · API | AC-40 | Operator B closes a `GPU-01` slot; student A calls the route; no cookie; operator A closes a `GPU-02` slot ID through `/machines/{GPU-01}/...`; unknown machine ID. | `403 MACHINE_NOT_ASSIGNED`, `403 FORBIDDEN`, `401`, `404 SLOT_NOT_FOUND`, `404 MACHINE_NOT_FOUND`. Nothing changes. |
+| TC-CLOSE-05 · API and database | AC-41 | Repeat 20 times on fresh slots: operator A closes and student A books the same slot concurrently. | Each round: exactly one `2xx`. The slot is never both closed and holding a confirmed booking. |
+| TC-E2E-05 · UI | AC-24, AC-27 | Browser: student A books, opens My Bookings, cancels and confirms; student B finds and books the released slot. | The entry shows Cancelled with its time; B's booking is confirmed. |
+| TC-E2E-06 · UI | AC-30 | Browser: student A moves a booking to another date and slot. | The new booking appears confirmed; the original shows Rescheduled with a link to the new one. |
+| TC-E2E-07 · UI | AC-37, AC-38 | Browser: operator A closes a slot; student A's availability for that date no longer lists it. | The schedule row shows Closed; the student list omits the slot. |
+
+## Regression on every staging merge and on the release candidate
+
+- Full Sprint 1 suite, unchanged: TC-AUTH-01 to 04, TC-TIME-01, TC-VALID-01, TC-SLOT-01 to 03, TC-BOOK-01 to 04 (including the CR-01 boundaries), TC-ACCESS-01 to 03, TC-PERSIST-01, TC-E2E-01, TC-E2E-02. TC-BOOK-02 and TC-BOOK-04 also check the conflict mapping after the index change.
+- TC-X-01 · API and database, cross-feature: A books, cancels, B books the same slot, B moves away, operator A closes the freed slot. Each step's state is checked through availability, My Bookings and the schedule.
+- Deployed release: the Lab 5 smoke test plus a manual check that a cancelled booking is retrieved after a new revision is deployed (NFR-02).
+
+## Version history
+
+| Version | Date | Author | Change |
+|---|---|---|---|
+| 0.1 | 2026-11-25 | Tanadet Nuchaikaew | Initial Sprint 2 test design for contracts 0.1. |
