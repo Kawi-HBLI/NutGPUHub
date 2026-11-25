@@ -6,7 +6,7 @@
 | Theme | 1. Appointment and Scheduling System |
 | Context | Reserving one-hour time slots on shared university GPU machines |
 | Team | Tanadet Nuchaikaew, Thawat Boonsuk. Student IDs are in the submitted PDF. |
-| Version | 0.4, see [version history](#version-history) |
+| Version | 0.7, see [version history](#version-history) |
 
 ## Purpose and scope
 
@@ -30,6 +30,9 @@ The product scope covers slot publication, booking, cancellation, rescheduling, 
 | Confirmed booking | A saved reservation for one student and slot. Every Sprint 1 booking is implicitly confirmed; cancellation states are planned for Sprint 2. |
 | Available slot | An open slot whose start is more than 30 minutes after server time and which has no confirmed booking (revised by Lab 7 CR-01; previously: start strictly after server time). Availability is a slot property. |
 | Student eligibility | The student role, valid session and BR-04 also apply when reserving. A slot may appear available even if that student already holds another machine at the same hour; the booking request then rejects the conflict. |
+| Closed slot | A slot an operator has closed (Sprint 2, F-07). It keeps its record and any history, is never available, and cannot be reopened (D-13). |
+| Cancelled booking | A booking its student cancelled before the slot started (Sprint 2, F-05). The row is kept with `cancelledAt`; it no longer holds the slot or the student's hour (D-09, D-12). |
+| Rescheduled booking | A booking replaced by a move (Sprint 2, F-06). The row is kept; the replacement is a new confirmed booking that links back to it (D-10). |
 | Upcoming / started | Upcoming means server time < startAt; started means server time >= startAt. Passing time does not delete the booking. |
 
 Sprint 1 transitions are unpublished slot -> published/unbooked slot -> booked slot. A rejected request leaves the persisted reservation state unchanged. Time changes whether a slot may be booked; it does not add a stored slot status. Sprint 2 introduces cancellation, rescheduling and closure under separately reviewed contracts. Reopening a closed slot, an account-admin interface and GPU execution remain outside the baseline.
@@ -81,7 +84,7 @@ FR-01 through FR-09 keep their original meaning and IDs, except as revised by La
 | FR-08.1 | An operator can close only an upcoming, unbooked slot on an assigned machine. | F-07 | 2 |
 | FR-08.2 | A closed slot is excluded from student availability and a direct booking request for it is rejected. | F-07 | 2 |
 | FR-09.1 | An operator can filter the booking summary by assigned machine and date range. | F-08 | 3 |
-| FR-09.2 | Show counts of open slots, slots with confirmed bookings, and slots currently available to book. Define exact counting and date-range predicates in the F-08 contract before implementation (Q-03). | F-08 | 3 |
+| FR-09.2 | Show counts of open slots, slots with confirmed bookings, and slots currently available to book. Counting and date-range predicates are fixed by D-11. | F-08 | 3 |
 
 ## Business rules
 
@@ -134,16 +137,15 @@ FR-01 through FR-09 keep their original meaning and IDs, except as revised by La
 | D-06 | What slot length is used? | One hour, starting on the hour. Recorded in BR-01. | 2026-11-06 |
 | D-07 | Who can change availability? | Only the operator assigned to the machine. Recorded in BR-02. | 2026-11-06 |
 | D-08 | Should booking close before the slot starts? | Yes, 30 minutes before, so the operator has time to prepare the machine. Team decision for Lab 7 CR-01; recorded in BR-01, FR-01, FR-04 and FR-07. | 2026-11-24 |
+| D-09 | Q-01: How does a repeated cancellation respond, and which history fields are shown? | A second cancel returns `409 BOOKING_NOT_CONFIRMED` and changes nothing. Student booking views show `status` and `cancelledAt`. Recorded in the F-05 contract. | 2026-11-25 |
+| D-10 | Q-02: Does a reschedule keep the booking ID? | No. One transaction marks the original `rescheduled` and inserts a new confirmed booking with `replacesBookingId`. If the insert fails, the transaction rolls back and the original stays confirmed (BR-03). The target must start more than 30 minutes after server time (D-08). Recorded in the F-06 contract. | 2026-11-25 |
+| D-11 | Q-03: Which predicates does the booking summary use? | `from` and `to` are Bangkok dates and both are inclusive. Open and booked counts include past slots; the bookable count uses the 30-minute rule at request time. `from > to`, a missing or invalid date, or a range over 31 days returns `400 INVALID_DATE_RANGE`; an unassigned machine returns `403` and an unknown one `404`. Recorded in the F-08 contract. | 2026-11-25 |
+| D-12 | Does cancellation use the 30-minute booking cutoff? | No. FR-06 stays "before the slot starts". A slot cancelled in its last 30 minutes is released but cannot be booked again. | 2026-11-25 |
+| D-13 | Does closure use the 30-minute booking cutoff, and can a closed slot be reopened? | No cutoff: FR-08 stays "upcoming" (server time before `startAt`). A closed slot cannot be reopened. | 2026-11-25 |
 
 ## Open questions for later contracts
 
-These questions refine later-sprint behavior. They do not block the accepted Sprint 1 workflow.
-
-| ID | Question | Owner / resolution gate |
-|---|---|---|
-| Q-01 | How should a repeated cancellation request respond, and which history fields are displayed? | Team review of F-05 before Sprint 2 implementation. |
-| Q-02 | Does a reschedule retain the booking ID or create a linked replacement, and how is its history presented? | Team review of F-06 before implementation; BR-03 and exclusivity must hold either way. |
-| Q-03 | Do open-slot totals include past slots, and are both date-range endpoints inclusive in Bangkok time? Define each report predicate and invalid-range behavior. | Team review of F-08 before Sprint 3 implementation; needed for the November 29 progress slice. |
+None open. Q-01, Q-02 and Q-03 were resolved on 2026-11-25 as D-09, D-10 and D-11. D-12 and D-13 settle two questions raised while drafting the Sprint 2 plan.
 
 ## Version history
 
@@ -155,3 +157,4 @@ These questions refine later-sprint behavior. They do not block the accepted Spr
 | 0.4 | 2026-11-07 | Tanadet Nuchaikaew | Post-F-04 refinement for peer review: retained parent IDs, added observable child requirements, state vocabulary, assumption register and later-sprint questions. No runtime scope change. |
 | 0.5 | 2026-11-24 | Tanadet Nuchaikaew | Lab 7 CR-01: booking closes 30 minutes before the slot starts (FR-01, FR-01.1, FR-04, FR-04.1). See `docs/labs/lab-07/change-request.md`. |
 | 0.6 | 2026-11-24 | Tanadet Nuchaikaew | PR #64 review: revised the Available slot definition, BR-01, FR-07 and FR-07.1 for CR-01; added decision D-08; noted the CR-01 exception to the original-meaning statement. |
+| 0.7 | 2026-11-25 | Tanadet Nuchaikaew | Sprint 2 planning: resolved Q-01 to Q-03 as D-09 to D-11, added D-12 and D-13, and added closed, cancelled and rescheduled states to the vocabulary. No change to FR or BR wording. |

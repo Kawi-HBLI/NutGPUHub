@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| Status | Draft for team review. Not a reviewed contract; no code may start from it until the decisions below are recorded and the contracts in `feature-contracts.md` are merged. |
-| Base | `main` at `5f744ab` (Lab 6 release). Lab 7 CR-01 is reviewed on `lab-7-staging` (PR #64 contract, PR #65 code) but not yet on `main`. |
+| Status | Draft for team review. Q-01 to Q-05 were decided on 2026-11-25 (all recommendations taken; recorded as D-09 to D-13 in the SRS). The detailed F-05 to F-07 contracts are in `feature-contracts.md` and `test-specification.md`, which supersede section 5 where they differ. No code starts until they are merged. |
+| Base | `main` at `25cb60f` (Lab 7 release, PR #66), which includes CR-01. Sprint 2 branches start here. |
 | Deadline | Project Deliverable 2, 29 November 2026, 23:59 Asia/Bangkok (same day as the Lab 7 PDF). |
 | Version | 0.1, 2026-11-25, Tanadet Nuchaikaew |
 
@@ -34,9 +34,9 @@ Selected program evidence: two Sprint 2 features (proposed: F-05 cancel and F-06
 
 No feature moves between sprints. Lab 7 CR-01 already revised FR-07 and FR-07.1 (decision D-08, SRS 0.6): a reschedule target must start more than 30 minutes after server time, like a new booking. F-06 inherits that rule; this plan does not edit any Lab 7 file.
 
-## 3. Decisions needed before contracts (Q-01 to Q-03)
+## 3. Decisions (Q-01 to Q-05)
 
-Each row gives a recommendation. The team records the chosen answer as D-09 to D-11 in the SRS decision log when the contracts PR is reviewed.
+Decided 2026-11-25: every recommendation below was taken. Q-01 to Q-03 are D-09 to D-11 and Q-04, Q-05 are D-12, D-13 in the SRS decision log.
 
 | ID | Question | Recommendation | Alternative and its cost |
 |---|---|---|---|
@@ -129,7 +129,7 @@ PRs open as drafts and become ready only when tests pass. Issues #12 to #15 alre
 
 | # | Work | Issue | Branch | Target | Gate |
 |---|---|---|---|---|---|
-| 1 | Lab 7 release `lab-7-staging` -> `main` | #20 / #63 | (existing) | `main` | Lab 7 work, not part of this plan; `sprint-2-staging` is cut after it lands so CR-01 is in the base. |
+| 1 | Lab 7 release `lab-7-staging` -> `main` | #20 / #63 | (existing) | `main` | Done: merged in PR #66 (`25cb60f`). `sprint-2-staging` is cut from it. |
 | 2 | S2-DOC Sprint 2 contracts, STS, decisions D-09 to D-11 | new | `docs/sprint-2-contracts` | `sprint-2-staging` | Merged before any F-05/F-06/F-07 code. |
 | 3 | F-05 cancel | #12 | `feature/12-cancel-booking` | `sprint-2-staging` | Migration and partial indexes first. |
 | 4 | F-07 close slot | #14 | `feature/14-close-slot` | `sprint-2-staging` | After F-05 merges (shared `bookings.ts` and migrations). |
@@ -146,7 +146,6 @@ PRs open as drafts and become ready only when tests pass. Issues #12 to #15 alre
 |---|---|
 | Partial-index migration breaks Sprint 1 exclusivity or the deployed DB. | TC-DB-01 and the full TC-BOOK suite run before F-05 merges; migrate a copy first; recheck NFR-02 after deploy. |
 | Close/book race leaves a booked closed slot. | Row lock in both transactions; TC-CLOSE-05. |
-| Lab 7 release slips and `sprint-2-staging` lacks CR-01. | If it is not on `main` when F-05 is ready to start, cut `sprint-2-staging` from `lab-7-staging` and note it in the release record. |
 | F-08 slice crowds out documentation. | F-08 slice is API plus minimal page only; UI polish goes to the remaining-work plan. |
 
 ## 8. After 29 November (outline for the remaining-work plan)
