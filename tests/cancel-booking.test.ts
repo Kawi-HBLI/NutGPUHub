@@ -166,12 +166,21 @@ test('TC-DB-01 partial unique indexes allow history but keep one confirmed booki
     INSERT INTO bookings (slot_id, student_id, slot_start_at, status, cancelled_at)
     VALUES (${slotId}, ${studentId}, ${first.startAt}, ${status}, ${cancelledAt})`;
 
+  // A raw-SQL violation arrives as P2010. Its meta has the PostgreSQL code (23505 unique,
+  // 23514 check) and a detail line; a unique violation names the key columns, not the index.
+  const failure = (attempt: Promise<number>) => attempt.then(() => null, (error: { meta?: unknown }) => error.meta);
+  const violation = (code: string, detail?: string) => (detail ? { code, message: expect.stringContaining(detail) } : { code });
+
   await insert(first.id, users[0], 'cancelled', new Date(now));
   await insert(first.id, users[1], 'confirmed', null);
-  await expect(insert(first.id, users[0], 'confirmed', null)).rejects.toThrow(/bookings_confirmed_slot_key/);
-  await expect(insert(second.id, users[1], 'confirmed', null)).rejects.toThrow(/bookings_confirmed_student_hour_key/);
-  await expect(insert(second.id, users[0], 'cancelled', null)).rejects.toThrow(/check/i);
-  await expect(insert(second.id, users[0], 'unknown', null)).rejects.toThrow(/check/i);
+  expect(await failure(insert(first.id, users[0], 'confirmed', null)))
+    .toMatchObject(violation('23505', 'Key (slot_id)='));
+  expect(await failure(insert(second.id, users[1], 'confirmed', null)))
+    .toMatchObject(violation('23505', 'Key (student_id, slot_start_at)='));
+  expect(await failure(insert(second.id, users[0], 'cancelled', null)))
+    .toMatchObject(violation('23514'));
+  expect(await failure(insert(second.id, users[0], 'unknown', null)))
+    .toMatchObject(violation('23514'));
 });
 
 test('TC-DB-02 conflicts after a cancellation still map to the right error codes', async () => {

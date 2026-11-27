@@ -7,6 +7,38 @@ import { bangkokDayRange, bookingCutoffMs } from './time.js';
 
 type Guard = ReturnType<typeof createSessionGuard>;
 
+/** Only confirmed bookings hold a slot and a student's hour (F-05, BR-01, BR-04). */
+const CONFIRMED = 'confirmed';
+const bookingInclude = { slot: { include: { machine: { select: { code: true } } } } } as const;
+type BookingRecord = Prisma.BookingGetPayload<{ include: typeof bookingInclude }>;
+
+/** Student booking view (F-04, extended by F-05 with the booking's status and cancellation time). */
+function bookingView(booking: BookingRecord) {
+  return {
+    bookingId: booking.id, ...slotView(booking.slot), machineCode: booking.slot.machine.code,
+    status: booking.status, cancelledAt: booking.cancelledAt?.toISOString() ?? null,
+  };
+}
+
+/** A booking ID from the URL, or null when it cannot name a stored booking. */
+function parseBookingId(raw: string) {
+  const id = /^[1-9]\d{0,9}$/.test(raw) ? Number(raw) : NaN;
+  return Number.isSafeInteger(id) && id <= 2_147_483_647 ? id : null;
+}
+
+/**
+ * Maps a violation of the confirmed-booking partial unique indexes to its API error.
+ * Prisma reports these indexes by their columns (`slot_id`, or `student_id` + `slot_start_at`),
+ * not by index name, so the column check from Sprint 1 stays (contract 0.3, conflict detection).
+ */
+export function bookingConflict(error: unknown) {
+  if (!(error instanceof Prisma.PrismaClientKnownRequestError) || error.code !== 'P2002') return null;
+  const target = error.meta?.target;
+  return Array.isArray(target) && target.includes('slot_id')
+    ? { code: 'SLOT_ALREADY_BOOKED', message: 'This slot has already been booked.' }
+    : { code: 'STUDENT_TIME_CONFLICT', message: 'You already have a booking at this hour.' };
+}
+
 export function createStudentRouter(database: PrismaClient, clock: () => number, guard: Guard) {
   const router = express.Router();
   const studentOnly = [guard.requireAccount, guard.requireRole('student')];
@@ -19,7 +51,7 @@ export function createStudentRouter(database: PrismaClient, clock: () => number,
     }
     const slots = await database.slot.findMany({
       // Only slots that can still be booked: the start is more than 30 minutes away (AC-11, CR-01).
-      where: { startAt: { gte: day.start, lt: day.end, gt: new Date(clock() + bookingCutoffMs) }, bookings: { none: {} } },
+      where: { startAt: { gte: day.start, lt: day.end, gt: new Date(clock() + bookingCutoffMs) }, bookings: { none: { status: CONFIRMED } } },
       include: { machine: { select: { code: true } } },
       orderBy: [{ startAt: 'asc' }, { id: 'asc' }],
     });
@@ -53,14 +85,9 @@ export function createStudentRouter(database: PrismaClient, clock: () => number,
       } });
       response.location(`/api/v1/bookings/${booking.id}`).status(201).json({ bookingId: booking.id, slotId: slot.id });
     } catch (error) {
-      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
-        const target = error.meta?.target;
-        const sameSlot = Array.isArray(target) && target.includes('slot_id');
-        sendError(response, 409, sameSlot ? 'SLOT_ALREADY_BOOKED' : 'STUDENT_TIME_CONFLICT',
-          sameSlot ? 'This slot has already been booked.' : 'You already have a booking at this hour.');
-        return;
-      }
-      throw error;
+      const conflict = bookingConflict(error);
+      if (!conflict) throw error;
+      sendError(response, 409, conflict.code, conflict.message);
     }
   }));
 
@@ -68,26 +95,52 @@ export function createStudentRouter(database: PrismaClient, clock: () => number,
   router.get('/bookings', ...studentOnly, asyncRoute(async (_request, response) => {
     const bookings = await database.booking.findMany({
       where: { studentId: currentAccount(response).id },
-      include: { slot: { include: { machine: { select: { code: true } } } } },
+      include: bookingInclude,
       orderBy: [{ slotStartAt: 'asc' }, { id: 'asc' }],
     });
-    response.json(bookings.map(booking => ({
-      bookingId: booking.id, ...slotView(booking.slot), machineCode: booking.slot.machine.code,
-    })));
+    // F-05: cancelled bookings stay in the list as history (FR-06.3).
+    response.json(bookings.map(bookingView));
   }));
 
   router.get('/bookings/:bookingId', ...studentOnly, asyncRoute(async (request, response) => {
-    const id = /^[1-9]\d{0,9}$/.test(request.params.bookingId) ? Number(request.params.bookingId) : NaN;
-    const booking = Number.isSafeInteger(id) && id <= 2_147_483_647
-      ? await database.booking.findFirst({
-        where: { id, studentId: currentAccount(response).id },
-        include: { slot: { include: { machine: { select: { code: true } } } } },
-      }) : null;
+    const id = parseBookingId(request.params.bookingId);
+    const booking = id === null ? null
+      : await database.booking.findFirst({ where: { id, studentId: currentAccount(response).id }, include: bookingInclude });
     if (!booking) {
       sendError(response, 404, 'BOOKING_NOT_FOUND', 'The booking does not exist.');
       return;
     }
-    response.json({ bookingId: booking.id, ...slotView(booking.slot), machineCode: booking.slot.machine.code });
+    response.json(bookingView(booking));
+  }));
+
+  /**
+   * F-05 cancel (AC-24 to AC-28). One conditional update decides the outcome, so two cancels
+   * cannot both succeed and a booking that started after the first read is never cancelled.
+   * `now` comes from the injected clock, not the database clock, so boundary tests stay exact.
+   */
+  router.post('/bookings/:bookingId/cancel', ...studentOnly, asyncRoute(async (request, response) => {
+    const id = parseBookingId(request.params.bookingId);
+    const studentId = currentAccount(response).id;
+    const now = new Date(clock());
+    const changed = id === null ? 0 : (await database.booking.updateMany({
+      where: { id, studentId, status: CONFIRMED, slotStartAt: { gt: now } },
+      data: { status: 'cancelled', cancelledAt: now },
+    })).count;
+    const booking = id === null ? null
+      : await database.booking.findFirst({ where: { id, studentId }, include: bookingInclude });
+    if (!booking) {
+      sendError(response, 404, 'BOOKING_NOT_FOUND', 'The booking does not exist.');
+      return;
+    }
+    if (changed === 0) {
+      if (booking.status !== CONFIRMED) {
+        sendError(response, 409, 'BOOKING_NOT_CONFIRMED', 'This booking is no longer confirmed.');
+      } else {
+        sendError(response, 409, 'BOOKING_ALREADY_STARTED', 'This booking has already started.');
+      }
+      return;
+    }
+    response.json(bookingView(booking));
   }));
   return router;
 }

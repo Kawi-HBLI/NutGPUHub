@@ -13,9 +13,9 @@ enum Role {
 }
 
 model User {
-  id           Int       @id @default(autoincrement())
-  username     String    @unique @db.VarChar(80)
-  passwordHash String    @map("password_hash")
+  id           Int          @id @default(autoincrement())
+  username     String       @unique @db.VarChar(80)
+  passwordHash String       @map("password_hash")
   role         Role
   sessions     Session[]
   machines     GpuMachine[]
@@ -48,16 +48,22 @@ model Slot {
 }
 
 model Booking {
-  id          Int      @id @default(autoincrement())
-  slotId      Int      @map("slot_id")
-  studentId   Int      @map("student_id")
-  slotStartAt DateTime @map("slot_start_at") @db.Timestamptz(3)
-  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
-  slot        Slot     @relation(fields: [slotId, slotStartAt], references: [id, startAt], onDelete: Restrict)
-  student     User     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  id          Int       @id @default(autoincrement())
+  slotId      Int       @map("slot_id")
+  studentId   Int       @map("student_id")
+  slotStartAt DateTime  @map("slot_start_at") @db.Timestamptz(3)
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  /// confirmed, cancelled or rescheduled (checked by bookings_status_check).
+  status      String    @default("confirmed")
+  /// Set exactly when status is cancelled (bookings_cancelled_at_check).
+  cancelledAt DateTime? @map("cancelled_at") @db.Timestamptz(3)
+  slot        Slot      @relation(fields: [slotId, slotStartAt], references: [id, startAt], onDelete: Restrict)
+  student     User      @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
-  @@unique([slotId])
-  @@unique([studentId, slotStartAt])
+  // Exclusivity (BR-01, BR-04) is enforced by the partial unique indexes
+  // bookings_confirmed_slot_key and bookings_confirmed_student_hour_key, declared only in
+  // migration 20261127000100_booking_status because Prisma cannot express partial indexes.
+  @@index([slotId])
   @@map("bookings")
 }
 

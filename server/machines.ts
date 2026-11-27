@@ -58,9 +58,10 @@ export function createMachineRouter(database: PrismaClient, clock: () => number,
     const slots = await database.slot.findMany({
       where: { machineId: machine.id, startAt: { gte: day.start, lt: day.end } },
       orderBy: { startAt: 'asc' },
-      include: { bookings: { select: { id: true, student: { select: { username: true } } } } },
+      // F-05: only the confirmed booking holds the slot; cancelled rows are history (AC-27).
+      include: { bookings: { where: { status: 'confirmed' }, select: { id: true, student: { select: { username: true } } } } },
     });
-    // F-04 (AC-14): the assigned operator sees who booked each slot. A slot has at most one booking (BR-01).
+    // F-04 (AC-14): the assigned operator sees who booked each slot. A slot has at most one confirmed booking (BR-01).
     response.json(slots.map(slot => {
       const booking = slot.bookings[0];
       return {
