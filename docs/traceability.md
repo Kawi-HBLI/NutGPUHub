@@ -53,8 +53,8 @@ Each dotted ID is defined in the SRS and inherits its original parent. Existing 
 | FR-07.3 | F-06 | 2 | AC-31, AC-32, AC-35, AC-42 | Planned: TC-MOVE-02, TC-MOVE-03, TC-MOVE-06, TC-MOVE-08 |
 | FR-08.1 | F-07 | 2 | AC-37, AC-39, AC-40 | Planned: TC-CLOSE-01, TC-CLOSE-03, TC-CLOSE-04, TC-PERSIST-02 |
 | FR-08.2 | F-07 | 2 | AC-36, AC-38, AC-41, AC-44 | Planned: TC-CLOSE-02, TC-CLOSE-05, TC-CLOSE-06, TC-MOVE-07, TC-E2E-07 |
-| FR-09.1 | F-08 | 3 | Planned contract | Planned: range boundaries, machine filter and assignment rejection |
-| FR-09.2 | F-08 | 3 | Planned contract | Planned: controlled fixture totals before/after booking, cancellation and closure |
+| FR-09.1 | F-08 | 3 | AC-46, AC-47, AC-49, AC-50 (Sprint 3 contract 0.1) | Planned: TC-SUM-02, TC-SUM-03, TC-SUM-05 to 07 |
+| FR-09.2 | F-08 | 3 | AC-45, AC-48, AC-51 (Sprint 3 contract 0.1) | Planned: TC-SUM-01, TC-SUM-04, TC-E2E-08 |
 
 ## Coverage gaps
 
@@ -86,3 +86,4 @@ The November 7 post-F-04 refinement keeps FR-01 to FR-09, F-01 to F-08 and AC-01
 | 0.6 | 2026-11-24 | Tanadet Nuchaikaew | PR #64 review: CR-01 row now lists BR-01, FR-07, FR-07.1, decision D-08 and F-06. |
 | 0.7 | 2026-11-25 | Tanadet Nuchaikaew | Mapped FR-06 to FR-08 and BR-03 to the draft Sprint 2 AC and test IDs (planned, not run). |
 | 0.8 | 2026-11-26 | Tanadet Nuchaikaew | PR #67 review: added the Sprint 2 AC and tests to the BR-01, BR-02, BR-04, NFR-01 and NFR-02 rows and mapped contract 0.2 (AC-42 to AC-44, TC-PERSIST-02). |
+| 0.9 | 2026-11-27 | Tanadet Nuchaikaew | Mapped FR-09.1 and FR-09.2 to the draft Sprint 3 AC and test IDs (planned, not run). |
