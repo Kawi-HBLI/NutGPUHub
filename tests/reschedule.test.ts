@@ -204,7 +204,7 @@ test('TC-MOVE-05 ownership, role, session, booking state and input are checked i
   expect(await database.booking.findMany({ where: { studentId: { in: users } }, orderBy: { id: 'asc' } })).toEqual(snapshot);
 });
 
-test('TC-MOVE-06 concurrent moves to one target, and concurrent moves of one booking, have exactly one winner (AC-35)', async () => {
+test('TC-MOVE-06 concurrent moves to one target, of one booking, or of one student into one hour have exactly one winner (AC-35)', async () => {
   for (let round = 0; round < 5; round += 1) {
     const date = `2031-06-${String(round + 1).padStart(2, '0')}`;
     const mineFrom = await slot(`${date}T14:00:00+07:00`);
@@ -234,6 +234,25 @@ test('TC-MOVE-06 concurrent moves to one target, and concurrent moves of one boo
     const made = await replacements(original);
     expect(made).toHaveLength(1);
     expect(made[0].status).toBe('confirmed');
+  }
+
+  // One student moves two bookings into one hour on two machines at once. The two transactions lock
+  // different rows, so the pre-write check can miss the other's uncommitted booking; the student-hour
+  // index then refuses the second insert, and bookingConflict must map it to 409, not 500 (contract 0.3).
+  for (let round = 0; round < 5; round += 1) {
+    const date = `2031-06-${String(round + 21).padStart(2, '0')}`;
+    const at10 = await book((await slot(`${date}T10:00:00+07:00`)).id);
+    const at11 = await book((await slot(`${date}T11:00:00+07:00`)).id);
+    const here = await slot(`${date}T16:00:00+07:00`);
+    const there = await slot(`${date}T16:00:00+07:00`, machines[1]);
+
+    const results = await Promise.all([move(at10, here.id), move(at11, there.id)]);
+    expect(results.map(result => result.status).sort()).toEqual([201, 409]);
+    expect(errorCode(results.find(result => result.status === 409)!)).toBe('STUDENT_TIME_CONFLICT');
+    const loser = results[0].status === 409 ? at10 : at11;
+    expect(await status(loser)).toBe('confirmed');
+    expect(await replacements(loser)).toEqual([]);
+    expect(await confirmedOn(here.id) + await confirmedOn(there.id)).toBe(1);
   }
 });
 
