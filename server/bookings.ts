@@ -3,22 +3,50 @@ import express from 'express';
 import { asyncRoute, currentAccount, sendError } from './http.js';
 import { slotView } from './machines.js';
 import type { createSessionGuard } from './session.js';
-import { lockSlot } from './slot-lock.js';
+import { lockBooking, lockSlot } from './slot-lock.js';
 import { bangkokDayRange, bookingCutoffMs } from './time.js';
 
 type Guard = ReturnType<typeof createSessionGuard>;
 
 /** Only confirmed bookings hold a slot and a student's hour (F-05, BR-01, BR-04). */
 const CONFIRMED = 'confirmed';
-const bookingInclude = { slot: { include: { machine: { select: { code: true } } } } } as const;
+const bookingInclude = {
+  slot: { include: { machine: { select: { code: true } } } },
+  replacedBy: { select: { id: true } },
+} as const;
 type BookingRecord = Prisma.BookingGetPayload<{ include: typeof bookingInclude }>;
 
-/** Student booking view (F-04, extended by F-05 with the booking's status and cancellation time). */
+/**
+ * Student booking view (F-04), extended by F-05 with the status and cancellation time and by F-06
+ * with the links between a rescheduled booking and its replacement.
+ */
 function bookingView(booking: BookingRecord) {
   return {
     bookingId: booking.id, ...slotView(booking.slot), machineCode: booking.slot.machine.code,
     status: booking.status, cancelledAt: booking.cancelledAt?.toISOString() ?? null,
+    replacesBookingId: booking.replacesBookingId, replacedByBookingId: booking.replacedBy?.id ?? null,
   };
+}
+
+type Refusal = { status: number; code: string; message: string };
+const refuse = (status: number, code: string, message: string) => ({ refusal: { status, code, message } });
+
+/** A slot ID from a request body, or null when it is not a positive 32-bit integer (F-03, F-06). */
+function parseSlotId(raw: unknown) {
+  return typeof raw === 'number' && Number.isSafeInteger(raw) && raw >= 1 && raw <= 2_147_483_647 ? raw : null;
+}
+
+/**
+ * Target-slot checks shared by booking (F-03) and reschedule (F-06), in contract order after
+ * SLOT_NOT_FOUND: closed, started, then inside the 30-minute cutoff (D-08, CR-01).
+ */
+function slotRefusal(slot: { startAt: Date; closedAt: Date | null }, now: number) {
+  if (slot.closedAt) return refuse(409, 'SLOT_CLOSED', 'This slot has been closed.');
+  if (slot.startAt.getTime() <= now) return refuse(409, 'SLOT_ALREADY_STARTED', 'This slot has already started.');
+  if (slot.startAt.getTime() - bookingCutoffMs <= now) {
+    return refuse(409, 'BOOKING_CLOSED', 'Booking closes 30 minutes before the slot starts.');
+  }
+  return null;
 }
 
 /** A booking ID from the URL, or null when it cannot name a stored booking. */
@@ -61,28 +89,22 @@ export function createStudentRouter(database: PrismaClient, clock: () => number,
   }));
 
   router.post('/bookings', ...studentOnly, asyncRoute(async (request, response) => {
-    const slotId = request.body?.slotId;
-    if (!Number.isSafeInteger(slotId) || slotId < 1 || slotId > 2_147_483_647) {
+    const slotId = parseSlotId(request.body?.slotId);
+    if (slotId === null) {
       sendError(response, 400, 'INVALID_SLOT_ID', 'Choose a valid slot.');
       return;
     }
     const now = clock();
     const studentId = currentAccount(response).id;
-    type Refusal = { status: number; code: string; message: string };
     let outcome: { refusal: Refusal } | { bookingId: number };
     try {
       // F-07: lock the slot first so a concurrent close and this booking cannot both succeed (AC-41).
       outcome = await database.$transaction(async tx => {
         const slot = await lockSlot(tx, slotId);
-        if (!slot) return { refusal: { status: 404, code: 'SLOT_NOT_FOUND', message: 'The slot does not exist.' } };
-        if (slot.closedAt) return { refusal: { status: 409, code: 'SLOT_CLOSED', message: 'This slot has been closed.' } };
-        if (slot.startAt.getTime() <= now) {
-          return { refusal: { status: 409, code: 'SLOT_ALREADY_STARTED', message: 'This slot has already started.' } };
-        }
+        if (!slot) return refuse(404, 'SLOT_NOT_FOUND', 'The slot does not exist.');
         // Checked before the insert, so a booked slot inside the window also gets BOOKING_CLOSED (AC-03, CR-01).
-        if (slot.startAt.getTime() - bookingCutoffMs <= now) {
-          return { refusal: { status: 409, code: 'BOOKING_CLOSED', message: 'Booking closes 30 minutes before the slot starts.' } };
-        }
+        const refusal = slotRefusal(slot, now);
+        if (refusal) return refusal;
         const booking = await tx.booking.create({ data: { slotId: slot.id, studentId, slotStartAt: slot.startAt } });
         return { bookingId: booking.id };
       });
@@ -149,6 +171,67 @@ export function createStudentRouter(database: PrismaClient, clock: () => number,
       return;
     }
     response.json(bookingView(booking));
+  }));
+
+  /**
+   * F-06 reschedule (AC-30 to AC-36, AC-42 to AC-44). One transaction locks the original booking,
+   * then the target slot, checks both, marks the original rescheduled and inserts the replacement.
+   * The explicit conflict checks run before any write, so a swap or cross-move between two
+   * transactions returns 409 instead of deadlocking (contract 0.3, "Serializing writes").
+   */
+  router.post('/bookings/:bookingId/reschedule', ...studentOnly, asyncRoute(async (request, response) => {
+    // The body is validated first, as in F-03, so a bad slot ID never reveals whether a booking exists.
+    const slotId = parseSlotId(request.body?.slotId);
+    if (slotId === null) {
+      sendError(response, 400, 'INVALID_SLOT_ID', 'Choose a valid slot.');
+      return;
+    }
+    const id = parseBookingId(request.params.bookingId);
+    if (id === null) {
+      sendError(response, 404, 'BOOKING_NOT_FOUND', 'The booking does not exist.');
+      return;
+    }
+    const now = clock();
+    const studentId = currentAccount(response).id;
+    let outcome: { refusal: Refusal } | { bookingId: number; replacesBookingId: number };
+    try {
+      outcome = await database.$transaction(async tx => {
+        const original = await lockBooking(tx, id, studentId);
+        if (!original) return refuse(404, 'BOOKING_NOT_FOUND', 'The booking does not exist.');
+        if (original.status !== CONFIRMED) return refuse(409, 'BOOKING_NOT_CONFIRMED', 'This booking is no longer confirmed.');
+        if (original.slotStartAt.getTime() <= now) return refuse(409, 'BOOKING_ALREADY_STARTED', 'This booking has already started.');
+        const slot = await lockSlot(tx, slotId);
+        if (!slot) return refuse(404, 'SLOT_NOT_FOUND', 'The slot does not exist.');
+        if (slot.id === original.slotId) return refuse(409, 'SAME_SLOT', 'Choose a different slot.');
+        const refusal = slotRefusal(slot, now);
+        if (refusal) return refusal;
+        if (await tx.booking.count({ where: { slotId, status: CONFIRMED } }) > 0) {
+          return refuse(409, 'SLOT_ALREADY_BOOKED', 'This slot has already been booked.');
+        }
+        // The original is excluded, so a move to another machine at the same hour is allowed (AC-32).
+        const sameHour = { studentId, slotStartAt: slot.startAt, status: CONFIRMED, id: { not: original.id } };
+        if (await tx.booking.count({ where: sameHour }) > 0) {
+          return refuse(409, 'STUDENT_TIME_CONFLICT', 'You already have a booking at this hour.');
+        }
+        await tx.booking.update({ where: { id: original.id }, data: { status: 'rescheduled' } });
+        const replacement = await tx.booking.create({
+          data: { slotId, studentId, slotStartAt: slot.startAt, replacesBookingId: original.id },
+        });
+        return { bookingId: replacement.id, replacesBookingId: original.id };
+      });
+    } catch (error) {
+      // The indexes still catch two moves of one student into one hour on different machines.
+      const conflict = bookingConflict(error);
+      if (!conflict) throw error;
+      sendError(response, 409, conflict.code, conflict.message);
+      return;
+    }
+    if ('refusal' in outcome) {
+      sendError(response, outcome.refusal.status, outcome.refusal.code, outcome.refusal.message);
+      return;
+    }
+    response.location(`/api/v1/bookings/${outcome.bookingId}`).status(201)
+      .json({ bookingId: outcome.bookingId, slotId, replacesBookingId: outcome.replacesBookingId });
   }));
   return router;
 }
