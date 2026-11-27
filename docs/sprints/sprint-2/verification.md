@@ -21,7 +21,16 @@ Two disclosures:
 - **TC-DB-01 assertion changed after the RED commit.** The first version expected the index name in the error text. PostgreSQL's detail, as Prisma passes it in `meta.message`, names the key columns instead (`Key (slot_id)=...`). The test now checks the SQLSTATE (`23505` unique, `23514` check) and the key columns. The rule under test did not change, and its RED failure (missing `status` column) is still valid. The change is in `47d30fc`.
 - **TC-PERSIST-02 (cancel part) was written after the implementation**, so it passed on its first run. AC-29 has no separate RED evidence; the RED API tests cover the cancelled state it reads back.
 
-### Results at `285b0b8`
+### CI runs on PR #68
+
+| Step | Commit | CI run | Vitest | Playwright |
+|---|---|---|---|---|
+| RED | `6b4f09a` | 45946771176 | 8 failed, 43 passed (51) | not reached |
+| GREEN | `1528a7e` | 45947423217 | 51 passed (51), 9 files | 5 passed; TC-PERSIST-01 and TC-PERSIST-02 passed |
+
+The local results below were rerun at `1528a7e`, the head that CI tested. `1528a7e` only adds this document and decision dates on top of `285b0b8`, so code and tests are the same.
+
+### Results at `1528a7e` (head of PR #68)
 
 | Command | Result |
 |---|---|
@@ -32,7 +41,7 @@ Two disclosures:
 
 ### AC-to-test mapping
 
-| AC | Test | Actual file / assertion | Result at `285b0b8` |
+| AC | Test | Actual file / assertion | Result at `1528a7e` |
 |---|---|---|---|
 | AC-24 | TC-CANCEL-01, TC-E2E-05 | `tests/cancel-booking.test.ts`: `200` with `status: cancelled` and `cancelledAt` = clock; detail, list and the stored row agree. `e2e/cancel-booking.spec.ts`: cancel with confirmation, still listed after reload. | Passed |
 | AC-25 | TC-CANCEL-02 | Another student `404 BOOKING_NOT_FOUND` with only `error`; operator `403 FORBIDDEN`; no cookie `401 AUTH_REQUIRED`; unknown and invalid IDs `404`; row stays confirmed. | Passed |
@@ -55,3 +64,4 @@ Planned. See the test specification.
 | Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1 | 2026-11-27 | Tanadet Nuchaikaew | F-05 local RED/GREEN runs and AC mapping. CI run IDs to be added from the PR. |
+| 0.2 | 2026-11-27 | Tanadet Nuchaikaew | PR #68 review: added CI runs 45946771176 (RED) and 45947423217 (GREEN); results recorded at `1528a7e`. |
