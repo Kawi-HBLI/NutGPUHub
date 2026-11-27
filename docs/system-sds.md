@@ -11,25 +11,26 @@ erDiagram
     User ||--o{ Session : "signs in with"
     User ||--o{ GpuMachine : "operates"
     GpuMachine ||--o{ Slot : "has"
-    Slot ||--o| Booking : "reserved by"
+    Slot ||--o{ Booking : "reserved by"
     User ||--o{ Booking : "owns"
+    Booking |o--o| Booking : "replaces"
 ```
+
+The diagram shows the Sprint 2 design. A slot keeps every booking row, so slot-to-booking is one-to-many, but at most one of those rows is `confirmed` at a time. A replacement booking links to the booking it replaced. Until the F-05 migration is merged, the running code is the Sprint 1 shape (one booking per slot, no status).
 
 | Record | Main fields and relationships |
 |---|---|
 | User | ID, unique username, argon2id password hash, and `student` or `operator` role. |
 | GPU machine | ID, unique machine code, and assigned operator ID referencing a user. |
-| Slot | ID, machine ID, and `startAt`. Machine ID and start time form a unique pair. Derive `endAt` by adding one hour. |
-| Booking | ID, slot ID, student ID, `slotStartAt`, and creation timestamp. `slotStartAt` is copied from the slot when the booking is created. A composite foreign key `(slotId, slotStartAt)` references the slot `(id, startAt)` so the copied timestamp cannot drift. The slot ID is unique (BR-01), and the pair of student ID and `slotStartAt` is unique (BR-04). |
+| Slot | ID, machine ID, `startAt`, and `closedAt` (Sprint 2, F-07; null while open). Machine ID and start time form a unique pair. Derive `endAt` by adding one hour. A closed slot is never reopened. |
+| Booking | ID, slot ID, student ID, `slotStartAt`, and creation timestamp. `slotStartAt` is copied from the slot when the booking is created. A composite foreign key `(slotId, slotStartAt)` references the slot `(id, startAt)` so the copied timestamp cannot drift. Sprint 2 adds `status` (`confirmed`, `cancelled` or `rescheduled`), `cancelledAt` (set exactly when cancelled) and `replacesBookingId` (unique, references the replaced booking). Partial unique indexes make the slot ID unique among confirmed bookings (BR-01) and the pair of student ID and `slotStartAt` unique among confirmed bookings (BR-04). |
 | Session | ID, user ID, unique token hash, and expiry timestamp. |
 
 Store timestamps in UTC. Interpret calendar dates and validate hour boundaries in `Asia/Bangkok`. Treat the end of a slot as the start of the next possible slot. The API checks the server clock before opening or booking a slot. Database uniqueness resolves competing writes. A duplicate booking for the same slot is translated to `SLOT_ALREADY_BOOKED`, and a second booking by the same student for the same hour is translated to `STUDENT_TIME_CONFLICT`.
 
 The API reads the current time through an injected clock. Production uses the system clock. Tests pass a fixed clock so that slot start checks and session expiry can be tested at exact boundaries.
 
-The diagram shows the current Sprint 1 cardinality. Slots have no stored open/closed state, and bookings have no cancellation status yet. In Sprint 2, retaining historical cancelled bookings changes the slot-to-booking cardinality to one-to-many, while confirmed reservations remain exclusive. The record/history representation must be reviewed in F-05/F-06 before changing the schema.
-
-**Planned Sprint 2 change to bookings.** Cancellation history adds a `status` column (`confirmed` or `cancelled`) and a cancellation timestamp. The two unique constraints then apply only to confirmed bookings, so they become partial unique indexes (`WHERE status = 'confirmed'`). Prisma's schema language cannot declare partial indexes, so this migration is written as raw SQL inside a versioned Prisma migration.
+**Sprint 2 change to bookings and slots.** Cancellation and rescheduling keep history, so the Sprint 1 unique constraints become partial unique indexes `WHERE status = 'confirmed'`. Prisma's schema language cannot declare partial indexes, so this migration is written as raw SQL inside a versioned Prisma migration, and the migration is the source of truth for exclusivity. Prisma still reports a violation with the column list, so the API keeps mapping `slot_id` to `SLOT_ALREADY_BOOKED` and the student-hour pair to `STUDENT_TIME_CONFLICT`. The exact migrations are in the [Sprint 2 feature contracts](sprints/sprint-2/feature-contracts.md#booking-state-and-data).
 
 ## Identity and access
 
@@ -43,7 +44,7 @@ Sign-in verifies an argon2id password hash and creates an opaque server-side ses
 | List machines and view their schedules | Denied | Assigned machines only | 1 |
 | Open slots | Denied | Assigned machines only | 1 |
 | Cancel or reschedule a booking | Own upcoming bookings | Denied | 2 |
-| Close a slot | Denied | Unbooked future slots on assigned machines | 2 |
+| Close a slot | Denied | Upcoming slots without a confirmed booking on assigned machines | 2 |
 | View booking summary | Denied | Assigned machines only | 3 |
 
 ## UI and API conventions
@@ -91,7 +92,7 @@ Sprint 1 runs locally. In Lab 5 the UI build and the API are packaged in one Doc
 4. The API returns the saved ID after a successful insert or a safe error object after rejection. The student UI refreshes availability and My Bookings after a booking attempt. The operator reloads the schedule to retrieve current booking details.
 5. Requests that pass the shared middleware and match no API route fall through to `404 NOT_FOUND`. An invalid Origin or malformed JSON may be rejected earlier with `403` or `400`. Existing unknown-path regression tests exercise GET requests. Known protected routes retain their authentication/role errors.
 
-Planned F-05/F-06 operations will use transactions to change confirmed state and history together. Planned F-07 must serialize closure with competing booking requests. These are design responsibilities for their later contracts, not implemented guarantees of Sprint 1. F-08 reads only authorized machines and must define report predicates before its queries are implemented.
+Sprint 2 writes (designed in contract 0.2, not yet implemented) each run in one transaction that takes row locks before reading the state they decide on. Booking and closure lock the slot row (`SELECT ... FOR UPDATE`). Reschedule locks the original booking row and then the target slot row, and then checks explicitly that the target has no confirmed booking and that the student holds no other confirmed booking at the target hour; without those checks two crossing moves deadlock. Cancel is one conditional update on `status = 'confirmed'`. Unique indexes remain the last guard. No conflict may surface as `500`. F-08 reads only authorized machines and must define report predicates before its queries are implemented.
 
 ## Version history
 
@@ -103,3 +104,4 @@ Planned F-05/F-06 operations will use transactions to change confirmed state and
 | 0.4 | 2026-11-07 | Tanadet Nuchaikaew | PR #21 review: documented the existing PUBLIC_ORIGIN fallback and origin precedence. |
 | 0.5 | 2026-11-07 | Tanadet Nuchaikaew | UI-01: recorded the shared presentation components, responsive layout and verification reference. |
 | 0.6 | 2026-11-08 | Tanadet Nuchaikaew | PR #23 review: simplified role/availability labels and schedule columns; distinguished disabled controls from pending requests. |
+| 0.7 | 2026-11-26 | Tanadet Nuchaikaew | Sprint 2 design (PR #67 review): one-to-many slot bookings with booking status, `cancelledAt`, `replacesBookingId` and slot `closedAt`; partial unique indexes with column-based conflict mapping; row locks and reschedule checks; close permission wording. |
