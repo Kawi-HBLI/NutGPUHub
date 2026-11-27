@@ -34,9 +34,11 @@ Past slots stay in `open` and `booked` so that the totals for a past range do no
 
 | API | Contract |
 |---|---|
-| `GET /api/v1/booking-summary?from=YYYY-MM-DD&to=YYYY-MM-DD[&machineId=N]` | Operator only. `200` with `{ from, to, machineId, open, booked, bookable }`; `machineId` is `null` when the request names none. Checks in order: `401 AUTH_REQUIRED`; `403 FORBIDDEN` (not an operator); when `machineId` is present, `404 MACHINE_NOT_FOUND` (invalid or unknown) and `403 MACHINE_NOT_ASSIGNED`; then `400 INVALID_DATE_RANGE` when `from` or `to` is missing, not `YYYY-MM-DD`, not a calendar date, `from > to`, or the range is longer than 31 days counting both ends. An operator with no assigned machines receives zeros. |
+| `GET /api/v1/booking-summary?from=YYYY-MM-DD&to=YYYY-MM-DD[&machineId=N]` | Operator only. `200` with `{ from, to, machineId, open, booked, bookable }`; `machineId` is `null` when the request names none. Checks in order: `401 AUTH_REQUIRED`; `403 FORBIDDEN` (not an operator); when `machineId` is present, `404 MACHINE_NOT_FOUND` (empty, repeated, not a positive integer, or unknown) and `403 MACHINE_NOT_ASSIGNED`; then `400 INVALID_DATE_RANGE` when `from` or `to` is missing, not `YYYY-MM-DD`, not a calendar date, `from > to`, or the range is longer than 31 days counting both ends. An operator with no assigned machines receives zeros when no `machineId` is given. |
 
 The machine is checked before the range, as in the Sprint 1 schedule route, so an unassigned operator learns nothing about the range either. Error bodies carry no counts.
+
+An empty `machineId=` is treated as an invalid machine (`404`), not as "all machines": the parameter is either absent or names one machine, so a client bug that drops the value cannot widen the report. The UI omits the parameter for All my machines.
 
 ### Acceptance criteria
 
@@ -44,10 +46,10 @@ AC numbering continues after AC-44.
 
 - **AC-45:** For a controlled fixture on one assigned machine, the summary returns the expected `open`, `booked` and `bookable`. After a booking, `booked` rises by one and `bookable` falls by one. After that booking is cancelled, both return. After a move, the original's slot leaves `booked` and the target's joins it. After a free slot is closed, `open` and `bookable` fall by one. (FR-09.2, D-11)
 - **AC-46:** Both dates are inclusive in Bangkok time: slots at `from` 00:00 and at `to` 23:00 count; slots at 23:00 the day before `from` and at 00:00 the day after `to` do not. A one-day range (`from = to`) is valid. (FR-09.1, D-11)
-- **AC-47:** With `machineId`, only that machine's slots count. Without it, the counts are the sum over the operator's assigned machines, and a machine assigned to another operator never contributes. (FR-09.1, BR-02)
+- **AC-47:** With `machineId`, only that machine's slots count. Without it, the counts are the sum over the operator's assigned machines, and a machine assigned to another operator never contributes. An operator with no assigned machines receives `200` with all three counts `0`. (FR-09.1, BR-02)
 - **AC-48:** A slot starting exactly 30 minutes after the request time is not bookable; one starting more than 30 minutes after is. Past open slots count in `open` and past booked slots in `booked`, never in `bookable`. (FR-09.2, D-08, D-11)
 - **AC-49:** `from > to`, a missing `from` or `to`, a value that is not `YYYY-MM-DD`, an impossible date such as `2031-02-30`, and a 32-day range return `400 INVALID_DATE_RANGE`. A 31-day range returns `200`. (D-11)
-- **AC-50:** An unassigned machine returns `403 MACHINE_NOT_ASSIGNED`, an unknown or non-numeric machine `404 MACHINE_NOT_FOUND`, a student `403 FORBIDDEN`, and no session `401`. None of these bodies contains a count. (BR-02, NFR-01)
+- **AC-50:** An unassigned machine returns `403 MACHINE_NOT_ASSIGNED`, an unknown, non-numeric or empty (`machineId=`) machine `404 MACHINE_NOT_FOUND`, a student `403 FORBIDDEN`, and no session `401`. None of these bodies contains a count. (BR-02, NFR-01)
 - **AC-51:** In the browser, operator A picks a range and a machine and sees the three counts with labels; after a student books one of the counted slots, refreshing the summary shows the new counts. (FR-09)
 
 ### Deliverable 2 slice and remaining work
@@ -68,3 +70,4 @@ The Sprint 2 Product Definition of Done applies, with these changes:
 | Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1 | 2026-11-27 | Tanadet Nuchaikaew | Initial F-08 contract, recording D-11; AC-45 to AC-51; Deliverable 2 slice. Written before any F-08 code. |
+| 0.2 | 2026-11-27 | Tanadet Nuchaikaew | PR #72 review: an empty or repeated `machineId` returns `404`; an operator with no assigned machines gets zeros (AC-47, AC-50). |
