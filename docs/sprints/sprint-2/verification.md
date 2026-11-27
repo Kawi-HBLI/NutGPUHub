@@ -87,6 +87,17 @@ The UI RED (TC-E2E-07 failing) exists only as a local run, because CI stops at t
 | AC-40 | TC-CLOSE-04 | Other operator `403 MACHINE_NOT_ASSIGNED`, student `403 FORBIDDEN`, no cookie `401`, slot of another machine and a non-numeric ID `404 SLOT_NOT_FOUND`, unknown machine `404 MACHINE_NOT_FOUND`; `closed_at` stays null. | Passed |
 | AC-41 | TC-CLOSE-05 | 20 rounds of close and booking sent together: exactly one `2xx`, no `5xx`; losing booking `SLOT_CLOSED` with no confirmed booking, losing close `SLOT_ALREADY_BOOKED` with `closed_at` null. | Passed |
 
+### Mutation check (TC-CLOSE-05)
+
+TC-CLOSE-05 passing on its own does not show that it can catch a race, so it was run against a mutated `server/slot-lock.ts` with `FOR UPDATE` removed from the `SELECT`. The change was never committed.
+
+| Who | Where | Mutated (no `FOR UPDATE`) | Restored |
+|---|---|---|---|
+| Thawat Boonsuk (PR #69 review, at `cad94ac`) | Temporary schemas, dropped afterwards | Failed in every run: both the close and the booking succeeded | Passed 3 of 3 runs; the close won about 1 round in 20 and the booking the rest, so both branches of the test ran |
+| Tanadet Nuchaikaew (at `cad94ac`) | Local PostgreSQL 16 test database | Failed 3 of 3 runs | Passed 3 of 3 runs; `git status` clean afterwards |
+
+So the race test fails when the slot lock is missing, and the lock is what makes AC-41 pass.
+
 Not covered yet: AC-44 (TC-CLOSE-06, close against a move) comes with F-06; the deployed-release check runs after the Sprint 2 release.
 
 ## F-06
@@ -100,3 +111,4 @@ Planned. See the test specification.
 | 0.1 | 2026-11-27 | Tanadet Nuchaikaew | F-05 local RED/GREEN runs and AC mapping. CI run IDs to be added from the PR. |
 | 0.2 | 2026-11-27 | Tanadet Nuchaikaew | PR #68 review: added CI runs 45946771176 (RED) and 45947423217 (GREEN); results recorded at `1528a7e`. |
 | 0.3 | 2026-11-27 | Tanadet Nuchaikaew | F-07: TDD order, CI runs 45951713384 (RED) and 45951910649 (GREEN), AC-37 to AC-41 mapping. |
+| 0.4 | 2026-11-27 | Tanadet Nuchaikaew | PR #69 review: TC-CLOSE-05 mutation check (no `FOR UPDATE`) by Thawat Boonsuk and Tanadet Nuchaikaew. |
