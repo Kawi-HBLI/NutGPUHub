@@ -98,11 +98,58 @@ TC-CLOSE-05 passing on its own does not show that it can catch a race, so it was
 
 So the race test fails when the slot lock is missing, and the lock is what makes AC-41 pass.
 
-Not covered yet: AC-44 (TC-CLOSE-06, close against a move) comes with F-06; the deployed-release check runs after the Sprint 2 release.
+Not covered yet: the deployed-release check runs after the Sprint 2 release. AC-44 (TC-CLOSE-06, close against a move) is covered in the F-06 section.
 
-## F-06
+## F-06 reschedule a booking (#13)
 
-Planned. See the test specification.
+Branch `feature/13-reschedule`, cut from `feature/14-close-slot` at `f5ff39c`, which reached `sprint-2-staging` through #69. Local runs used the Docker PostgreSQL 16 test database from `.env`.
+
+### TDD order
+
+| Step | Commit | What it contains | Result |
+|---|---|---|---|
+| RED (API and UI tests) | `bbfaf53` | `tests/reschedule.test.ts` (TC-MOVE-01 to 09), TC-CLOSE-06 in `tests/close-slot.test.ts`, `e2e/reschedule.spec.ts` (TC-E2E-06), TC-ACCESS-02 expecting the two link fields. No production code. | CI run 46021926341: Vitest 11 failed, 55 passed (66); every failure the missing route (`404`) or the missing link fields; Playwright not reached. Locally TC-E2E-06 failed at the missing Move button. |
+| GREEN (API) | `d796fb9` | Migration `20261127000300_booking_replacement`, `schema.prisma` (`replacesBookingId`, self relation), reschedule route and shared `slotRefusal` in `server/bookings.ts`, `lockBooking` in `server/slot-lock.ts`. | Locally Vitest 66 passed; `reschedule`, `close-slot` and `cancel` files rerun 5 times, all passed. |
+| GREEN (UI) | `cfc99cb` | `client/student.tsx`: Move, Move here, Confirm move / Keep current booking, Stop moving, Rescheduled label, links between the two bookings. | Locally Playwright 7 passed. |
+| Restart check | `c563284` | Reschedule part of TC-PERSIST-02 in `scripts/process-restart-check.ts`. | Passed. Written after the implementation, so it has no separate RED run. |
+
+### CI runs on PR #70
+
+| Step | Commit | CI run | Vitest | Playwright |
+|---|---|---|---|---|
+| RED | `bbfaf53` | 46021926341 | 11 failed, 55 passed (66) | not reached |
+| GREEN | `c563284` | 46024245235 | 66 passed (66), 11 files | 7 passed (TC-E2E-01 to 07); TC-PERSIST-01 and all three TC-PERSIST-02 parts passed |
+
+The UI RED (TC-E2E-06 failing) exists only as a local run, because CI stops at the failing Vitest step before Playwright.
+
+### AC-to-test mapping
+
+| AC | Test | Actual file / assertion | Result at `c563284` |
+|---|---|---|---|
+| AC-30 | TC-MOVE-01, TC-E2E-06, TC-PERSIST-02 (reschedule part) | `201` with a new `bookingId`, `replacesBookingId` = original and a `Location`; original `rescheduled` with `replacedByBookingId`; B then books the freed slot (`201`); both bookings and their links unchanged after a process restart; UI shows Rescheduled and a link to the new booking. | Passed |
+| AC-31 | TC-MOVE-02 | `409 SLOT_ALREADY_BOOKED`; original confirmed, booking count unchanged. | Passed |
+| AC-32 | TC-MOVE-03 | Move into an hour A holds on another machine `409 STUDENT_TIME_CONFLICT`, original kept; move to another machine at the original's own hour `201`. | Passed |
+| AC-33 | TC-MOVE-04 | Target at 13:29:59.999 `201`, 13:30:00.000 `409 BOOKING_CLOSED`, 14:00 `409 SLOT_ALREADY_STARTED`; started original `409 BOOKING_ALREADY_STARTED`; every rejected move leaves the original confirmed. | Passed |
+| AC-34 | TC-MOVE-05 | Other student `404 BOOKING_NOT_FOUND`, operator `403`, no cookie `401`, cancelled and rescheduled originals `409 BOOKING_NOT_CONFIRMED`, `slotId: "x"` `400 INVALID_SLOT_ID` with both a valid and another student's booking ID, unknown slot `404 SLOT_NOT_FOUND`, own slot `409 SAME_SLOT`; no row changes. | Passed |
+| AC-35 | TC-MOVE-06 | 5 rounds each: two students moving to one target, exactly one `201` and the other `409 SLOT_ALREADY_BOOKED` with its original confirmed; two moves of one booking, exactly one `201` and the other `409 BOOKING_NOT_CONFIRMED`. No `5xx`. | Passed |
+| AC-36 | TC-MOVE-07 | Move to a closed slot `409 SLOT_CLOSED`; original confirmed. | Passed |
+| AC-42 | TC-MOVE-08 | 10 rounds each of a swap (both `409 SLOT_ALREADY_BOOKED`) and a cross-move (both `409 STUDENT_TIME_CONFLICT`); no `500`, both originals confirmed. | Passed |
+| AC-43 | TC-MOVE-09 | 10 rounds of a cancel and a move of one booking sent together: exactly one wins; the loser gets `409 BOOKING_NOT_CONFIRMED`; no replacement when the cancel wins, replacement confirmed when the move wins. | Passed |
+| AC-44 | TC-CLOSE-06 | 10 rounds of a close and a move into one slot sent together: exactly one wins; losing move `409 SLOT_CLOSED` with the original confirmed, losing close `409 SLOT_ALREADY_BOOKED` with `closed_at` null. | Passed |
+
+TC-ACCESS-02 was revised again, as planned in the contract: its strict `toEqual` now includes `replacesBookingId: null, replacedByBookingId: null`.
+
+### Mutation check (lockBooking)
+
+`server/slot-lock.ts` was run with `FOR UPDATE` removed from the `lockBooking` query. The change was never committed.
+
+| Who | Where | Mutated (no `FOR UPDATE` on the booking) | Restored |
+|---|---|---|---|
+| Tanadet Nuchaikaew (at `c563284`) | Local PostgreSQL 16 test database | TC-MOVE-06 and TC-MOVE-09 failed 3 of 3 runs: two moves of one booking, or a cancel and a move, both succeeded | Passed 3 of 3 runs; `git status` clean afterwards |
+
+TC-MOVE-08 (swap and cross-move) still passed under the mutation. It depends on the conflict checks that run before any write, not on the booking lock, which matches the contract's reason for those checks.
+
+Not covered yet: the deployed-release check runs after the Sprint 2 release.
 
 ## Version history
 
@@ -112,3 +159,4 @@ Planned. See the test specification.
 | 0.2 | 2026-11-27 | Tanadet Nuchaikaew | PR #68 review: added CI runs 45946771176 (RED) and 45947423217 (GREEN); results recorded at `1528a7e`. |
 | 0.3 | 2026-11-27 | Tanadet Nuchaikaew | F-07: TDD order, CI runs 45951713384 (RED) and 45951910649 (GREEN), AC-37 to AC-41 mapping. |
 | 0.4 | 2026-11-27 | Tanadet Nuchaikaew | PR #69 review: TC-CLOSE-05 mutation check (no `FOR UPDATE`) by Thawat Boonsuk and Tanadet Nuchaikaew. |
+| 0.5 | 2026-11-27 | Tanadet Nuchaikaew | F-06: TDD order, CI runs 46021926341 (RED) and 46024245235 (GREEN), AC-30 to AC-36 and AC-42 to AC-44 mapping, `lockBooking` mutation check. |
