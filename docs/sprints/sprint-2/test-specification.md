@@ -1,6 +1,6 @@
 # Sprint 2 Software Test Specification
 
-Test design for the [Sprint 2 feature contracts](feature-contracts.md) (version 0.2), written before implementation. Execution results go in `verification.md` once the tests run; a row here is a plan, not evidence.
+Test design for the [Sprint 2 feature contracts](feature-contracts.md) (version 0.3), written before implementation. Execution results go in `verification.md` once the tests run; a row here is a plan, not evidence.
 
 ## Common fixtures
 
@@ -24,13 +24,13 @@ The Sprint 1 fixtures apply: a separate migrated PostgreSQL test database, stude
 | TC-MOVE-06 · API and database | AC-35 | A holds 14:00 and B holds 15:00; both move to 16:00 concurrently. Then A sends two concurrent moves of one booking to two different free slots. | First pair: one `201`, one `409 SLOT_ALREADY_BOOKED`; the loser's original is `confirmed`; one confirmed booking on 16:00. Second pair: one `201`, one `409 BOOKING_NOT_CONFIRMED`; exactly one replacement exists. |
 | TC-MOVE-07 · API | AC-36 | Operator A closes 16:00. A moves a 14:00 booking to it. | `409 SLOT_CLOSED`; original kept. Needs F-07. |
 | TC-MOVE-08 · API and database | AC-42 | Swap: A holds S1 and B holds S2; A moves to S2 and B moves to S1 concurrently. Cross-move: A holds `GPU-01` 14:00 and 15:00; concurrently move the 14:00 booking to `GPU-02` 15:00 and the 15:00 booking to `GPU-02` 14:00. Repeat each 10 times on fresh dates. | Swap: both `409 SLOT_ALREADY_BOOKED`. Cross-move: both `409 STUDENT_TIME_CONFLICT`. All originals stay confirmed, no replacement rows, no `500`. |
-| TC-MOVE-09 · API and database | AC-43 | Repeat 10 times on fresh bookings: A cancels and moves the same booking concurrently. | Each round exactly one succeeds and the other returns `409 BOOKING_NOT_CONFIRMED`. Final state is either cancelled with no replacement, or rescheduled with one confirmed replacement. |
+| TC-MOVE-09 · API and database | AC-43 | Repeat 10 times on fresh bookings, each round with its original and its target at a different hour, because a winning move leaves A holding the target hour (BR-04): A cancels and moves the same booking concurrently. | Each round exactly one succeeds and the other returns `409 BOOKING_NOT_CONFIRMED`. Final state is either cancelled with no replacement, or rescheduled with one confirmed replacement. |
 | TC-CLOSE-01 · API and database | AC-37 | Operator A closes an upcoming unbooked `GPU-01` slot and reads the schedule. A books another slot and cancels it; operator A closes that slot. | Both closes return `200` with `closedAt = T`; the schedule shows `closedAt` set and `booking: null`. |
 | TC-CLOSE-02 · API | AC-38 | Close a slot, then request availability for its date and book it as A. | The slot is absent from availability. Booking returns `409 SLOT_CLOSED`; no booking row. |
 | TC-CLOSE-03 · API and database | AC-39 | Close a booked slot; close a closed slot. Two 14:00 slots on separate dates: close one at 14:00:00.000 and the other at 13:59:59.999. | `409 SLOT_ALREADY_BOOKED`, `409 SLOT_CLOSED`, `409 SLOT_ALREADY_STARTED`, then `200`. Rejected requests leave `closed_at` unchanged. |
 | TC-CLOSE-04 · API | AC-40 | Operator B closes a `GPU-01` slot; student A calls the route; no cookie; operator A closes a `GPU-02` slot ID through `/machines/{GPU-01}/...`; unknown machine ID. | `403 MACHINE_NOT_ASSIGNED`, `403 FORBIDDEN`, `401`, `404 SLOT_NOT_FOUND`, `404 MACHINE_NOT_FOUND`. Nothing changes. |
 | TC-CLOSE-05 · API and database | AC-41 | 20 rounds, each on a slot at a different hour (or date), because BR-04 lets student A hold only one booking per hour: operator A closes and student A books the same slot concurrently. | Each round exactly one `2xx`. A losing booking returns `409 SLOT_CLOSED`; a losing close returns `409 SLOT_ALREADY_BOOKED`. The slot is never both closed and holding a confirmed booking. |
-| TC-CLOSE-06 · API and database | AC-44 | 10 rounds at different hours: operator A closes slot X while student A moves a booking into X concurrently. | Each round exactly one succeeds. A losing move returns `409 SLOT_CLOSED` and the original stays confirmed; a losing close returns `409 SLOT_ALREADY_BOOKED`. |
+| TC-CLOSE-06 · API and database | AC-44 | 10 rounds, each at a different hour, because a winning move leaves A holding that hour (BR-04): operator A closes slot X while student A moves a booking into X concurrently. | Each round exactly one succeeds. A losing move returns `409 SLOT_CLOSED` and the original stays confirmed; a losing close returns `409 SLOT_ALREADY_BOOKED`. |
 | TC-E2E-05 · UI | AC-24, AC-27 | Browser: student A books, opens My Bookings, cancels and confirms; student B finds and books the released slot. | The entry shows Cancelled with its time; B's booking is confirmed. |
 | TC-E2E-06 · UI | AC-30 | Browser: student A moves a booking to another date and slot. | The new booking appears confirmed; the original shows Rescheduled with a link to the new one. |
 | TC-E2E-07 · UI | AC-37, AC-38 | Browser: operator A closes a slot; student A's availability for that date no longer lists it. | The schedule row shows Closed; the student list omits the slot. |
@@ -45,7 +45,7 @@ No other Sprint 1 assertion is expected to change. Any further failure counts as
 
 ## Regression on every staging merge and on the release candidate
 
-- Sprint 1 suite with only the revision above: TC-AUTH-01 to 04, TC-TIME-01, TC-VALID-01, TC-SLOT-01 to 03, TC-BOOK-01 to 04 (including the CR-01 boundaries), TC-ACCESS-01 to 03, TC-PERSIST-01, TC-E2E-01 to TC-E2E-04. TC-BOOK-02 and TC-BOOK-04 also check the conflict mapping after the index change.
+- The full `npm test` suite with only the revision above, which also runs TC-DEV-01, the cloud-ready tests (`tests/cloud-ready.test.ts`) and the empty-day availability test (`tests/availability-empty-day.test.ts`), plus `npm run test:e2e`. The Sprint 1 test IDs in it: TC-AUTH-01 to 04, TC-TIME-01, TC-VALID-01, TC-SLOT-01 to 03, TC-BOOK-01 to 04 (including the CR-01 boundaries), TC-ACCESS-01 to 03, TC-PERSIST-01, TC-E2E-01 to TC-E2E-04. TC-BOOK-02 and TC-BOOK-04 also check the conflict mapping after the index change.
 - TC-X-01 · API and database, cross-feature: A books, cancels, B books the same slot, B moves away, operator A closes the freed slot. Each step's state is checked through availability, My Bookings and the schedule.
 - Deployed release: the Lab 5 smoke test plus a check that a cancelled booking, a rescheduled pair and a closed slot are retrieved after a new revision is deployed (NFR-02).
 
@@ -55,3 +55,4 @@ No other Sprint 1 assertion is expected to change. Any further failure counts as
 |---|---|---|---|
 | 0.1 | 2026-11-25 | Tanadet Nuchaikaew | Initial Sprint 2 test design for contracts 0.1. |
 | 0.2 | 2026-11-26 | Tanadet Nuchaikaew | PR #67 review: separate slots per check in TC-CANCEL-03, TC-MOVE-04 and TC-CLOSE-03; TC-PERSIST-02 replaces TC-CANCEL-06 and covers reschedule and close; added TC-DB-02, TC-MOVE-08, TC-MOVE-09 and TC-CLOSE-06; exact loser codes; different hours in TC-CLOSE-05; recorded the TC-ACCESS-02 revision; added TC-E2E-03 and TC-E2E-04 to the regression set. |
+| 0.3 | 2026-11-27 | Tanadet Nuchaikaew | PR #67 review round 2: the regression set is the full `npm test` and `npm run test:e2e`; TC-MOVE-09 and TC-CLOSE-06 use a different hour each round and say why. |

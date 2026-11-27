@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| Status | Draft for team review. Q-01 to Q-05 were decided on 2026-11-25 (all recommendations taken; recorded as D-09 to D-13 in the SRS). The detailed F-05 to F-07 contracts are in `feature-contracts.md` and `test-specification.md`, which replace sections 4 and 5. No code starts until they are merged. |
+| Status | Draft for team review. Q-01 to Q-05 have proposed answers from 2026-11-25 (the recommendations below), recorded as D-09 to D-13 in the SRS. They become team decisions when PR #67 is approved. The detailed F-05 to F-07 contracts are in `feature-contracts.md` and `test-specification.md`, which replace sections 4 and 5. No code starts until they are merged. |
 | Base | `main` at `25cb60f` (Lab 7 release, PR #66), which includes CR-01. Sprint 2 branches start here. |
 | Deadline | Project Deliverable 2, 29 November 2026, 23:59 Asia/Bangkok (same day as the Lab 7 PDF). |
 | Version | 0.1, 2026-11-25, Tanadet Nuchaikaew |
@@ -36,7 +36,7 @@ No feature moves between sprints. Lab 7 CR-01 already revised FR-07 and FR-07.1 
 
 ## 3. Decisions (Q-01 to Q-05)
 
-Decided 2026-11-25: every recommendation below was taken. Q-01 to Q-03 are D-09 to D-11 and Q-04, Q-05 are D-12, D-13 in the SRS decision log.
+Proposed 2026-11-25: the recommendation in each row, recorded as D-09 to D-11 for Q-01 to Q-03 and D-12, D-13 for Q-04, Q-05 in the SRS decision log. They become team decisions when PR #67 is approved, as in the SRS.
 
 | ID | Question | Recommendation | Alternative and its cost |
 |---|---|---|---|
