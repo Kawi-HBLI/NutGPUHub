@@ -55,7 +55,41 @@ The local results below were rerun at `1528a7e`, the head that CI tested. `1528a
 
 Not covered yet: the deployed-release check (Cloud Run) runs after the Sprint 2 release. F-06 adds the link fields to the same views and revises TC-ACCESS-02 again.
 
-## F-06 and F-07
+## F-07 close a slot (#14)
+
+Branch `feature/14-close-slot`, cut from `sprint-2-staging` at `82b03a8` (after #68). Local runs used the Docker PostgreSQL 16 test database from `.env`.
+
+### TDD order
+
+| Step | Commit | What it contains | Result |
+|---|---|---|---|
+| RED (API and UI tests) | `abcfe61` | `tests/close-slot.test.ts` (TC-CLOSE-01 to 05), `e2e/close-slot.spec.ts` (TC-E2E-07). No production code. | CI run 45951713384: Vitest 5 failed, 51 passed (56), every failure the missing route (`404`); Playwright not reached. Locally TC-E2E-07 failed at the missing Close button. |
+| GREEN (API) | `905bbe2` | Migration `20261127000200_slot_closure`, `schema.prisma` (`closedAt`), close route in `server/machines.ts`, slot-locking booking transaction and closed-slot filter in `server/bookings.ts`, `server/slot-lock.ts`. | Locally Vitest 56 passed; `close-slot` and `bookings` files rerun 5 times, all passed. |
+| GREEN (UI) | `ff39150` | `client/operator.tsx`: Close, Confirm close / Keep open, Closed label. | Locally Playwright 6 passed. |
+| Restart check | `8f5d69f` | Close part of TC-PERSIST-02 in `scripts/process-restart-check.ts`. | Passed. Written after the implementation, so it has no separate RED run. |
+
+### CI runs on PR #69
+
+| Step | Commit | CI run | Vitest | Playwright |
+|---|---|---|---|---|
+| RED | `abcfe61` | 45951713384 | 5 failed, 51 passed (56) | not reached |
+| GREEN | `8f5d69f` | 45951910649 | 56 passed (56), 10 files | 6 passed (TC-E2E-01 to 05, 07); TC-PERSIST-01 and both TC-PERSIST-02 parts passed |
+
+The UI RED (TC-E2E-07 failing) exists only as a local run, because CI stops at the failing Vitest step before Playwright.
+
+### AC-to-test mapping
+
+| AC | Test | Actual file / assertion | Result at `8f5d69f` |
+|---|---|---|---|
+| AC-37 | TC-CLOSE-01, TC-E2E-07, TC-PERSIST-02 (close part) | `200` with `{ slotId, machineId, startAt, endAt, closedAt }`, `closed_at` = clock time; a slot whose booking was cancelled can be closed; schedule shows `closedAt` and `booking: null`; `closedAt` unchanged after a process restart; UI row shows Closed. | Passed |
+| AC-38 | TC-CLOSE-02, TC-E2E-07 | Closed slot absent from `GET /api/v1/slots`; direct booking `409 SLOT_CLOSED`, no booking row; student page lists nothing for that date. | Passed |
+| AC-39 | TC-CLOSE-03 | Booked slot `409 SLOT_ALREADY_BOOKED`, closing twice `409 SLOT_CLOSED` with `closed_at` unchanged, 14:00 slot at 14:00 `409 SLOT_ALREADY_STARTED`, 14:00 slot at 13:59:59.999 `200` (D-13, no 30-minute cutoff). | Passed |
+| AC-40 | TC-CLOSE-04 | Other operator `403 MACHINE_NOT_ASSIGNED`, student `403 FORBIDDEN`, no cookie `401`, slot of another machine and a non-numeric ID `404 SLOT_NOT_FOUND`, unknown machine `404 MACHINE_NOT_FOUND`; `closed_at` stays null. | Passed |
+| AC-41 | TC-CLOSE-05 | 20 rounds of close and booking sent together: exactly one `2xx`, no `5xx`; losing booking `SLOT_CLOSED` with no confirmed booking, losing close `SLOT_ALREADY_BOOKED` with `closed_at` null. | Passed |
+
+Not covered yet: AC-44 (TC-CLOSE-06, close against a move) comes with F-06; the deployed-release check runs after the Sprint 2 release.
+
+## F-06
 
 Planned. See the test specification.
 
@@ -65,3 +99,4 @@ Planned. See the test specification.
 |---|---|---|---|
 | 0.1 | 2026-11-27 | Tanadet Nuchaikaew | F-05 local RED/GREEN runs and AC mapping. CI run IDs to be added from the PR. |
 | 0.2 | 2026-11-27 | Tanadet Nuchaikaew | PR #68 review: added CI runs 45946771176 (RED) and 45947423217 (GREEN); results recorded at `1528a7e`. |
+| 0.3 | 2026-11-27 | Tanadet Nuchaikaew | F-07: TDD order, CI runs 45951713384 (RED) and 45951910649 (GREEN), AC-37 to AC-41 mapping. |
