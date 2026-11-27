@@ -93,8 +93,8 @@ TC-CLOSE-05 passing on its own does not show that it can catch a race, so it was
 
 | Who | Where | Mutated (no `FOR UPDATE`) | Restored |
 |---|---|---|---|
-| Thawat Boonsuk (PR #69 review, at `cad94ac`) | Temporary schemas, dropped afterwards | Failed in every run: both the close and the booking succeeded | Passed 3 of 3 runs; the close won about 1 round in 20 and the booking the rest, so both branches of the test ran |
-| Tanadet Nuchaikaew (at `cad94ac`) | Local PostgreSQL 16 test database | Failed 3 of 3 runs | Passed 3 of 3 runs; `git status` clean afterwards |
+| Thawat Boonsuk, through Claude Code (PR #69 review, at `cad94ac`) | Temporary schemas, dropped afterwards | Failed in every run: both the close and the booking succeeded | Passed 3 of 3 runs; the close won about 1 round in 20 and the booking the rest, so both branches of the test ran |
+| Tanadet Nuchaikaew, through Claude Code (at `cad94ac`) | Local PostgreSQL 16 test database | Failed 3 of 3 runs | Passed 3 of 3 runs; `git status` clean afterwards |
 
 So the race test fails when the slot lock is missing, and the lock is what makes AC-41 pass.
 
@@ -145,18 +145,18 @@ TC-ACCESS-02 was revised again, as planned in the contract: its strict `toEqual`
 
 | Who | Where | Mutated (no `FOR UPDATE` on the booking) | Restored |
 |---|---|---|---|
-| Tanadet Nuchaikaew (at `c563284`) | Local PostgreSQL 16 test database | TC-MOVE-06 and TC-MOVE-09 failed 3 of 3 runs: two moves of one booking, or a cancel and a move, both succeeded | Passed 3 of 3 runs; `git status` clean afterwards |
+| Tanadet Nuchaikaew, through Claude Code (at `c563284`) | Local PostgreSQL 16 test database | TC-MOVE-06 and TC-MOVE-09 failed 3 of 3 runs: two moves of one booking, or a cancel and a move, both succeeded | Passed 3 of 3 runs; `git status` clean afterwards |
 
 TC-MOVE-08 (swap and cross-move) still passed under the mutation. It depends on the conflict checks that run before any write, not on the booking lock, which matches the contract's reason for those checks.
 
 ### PR #70 review
 
-Thawat Boonsuk approved PR #70 at `eb9fcef` after his own runs in temporary schemas, dropped afterwards: RED 11 failures at `bbfaf53`; GREEN Vitest 66/66, Playwright 7/7 and the restart check; the reschedule, close and cancel files 3 times, 22/22 each. He also ran the mutation the PR had not: with the two pre-write checks (slot taken, same hour) removed, TC-MOVE-08 got a `500` from the deadlock and failed in every run, with or without an extra delay. His `lockBooking` mutation matched the one above.
+Thawat Boonsuk approved PR #70 at `eb9fcef` after runs he made through Claude Code in temporary schemas, dropped afterwards: RED 11 failures at `bbfaf53`; GREEN Vitest 66/66, Playwright 7/7 and the restart check; the reschedule, close and cancel files 3 times, 22/22 each. Those runs also covered the mutation the PR had not: with the two pre-write checks (slot taken, same hour) removed, TC-MOVE-08 got a `500` from the deadlock and failed in every run, with or without an extra delay. The `lockBooking` mutation matched the one above.
 
 | Mutation | Who | Result |
 |---|---|---|
-| Pre-write checks removed | Thawat Boonsuk (at `eb9fcef`) | TC-MOVE-08 failed in every run (`500`, deadlock) |
-| No `FOR UPDATE` in `lockBooking` | Thawat Boonsuk (at `eb9fcef`) | TC-MOVE-06 and TC-MOVE-09 failed in every run |
+| Pre-write checks removed | Thawat Boonsuk, through Claude Code (at `eb9fcef`) | TC-MOVE-08 failed in every run (`500`, deadlock) |
+| No `FOR UPDATE` in `lockBooking` | Thawat Boonsuk, through Claude Code (at `eb9fcef`) | TC-MOVE-06 and TC-MOVE-09 failed in every run |
 
 So both halves of the design are needed: the booking lock for AC-35 and AC-43, the pre-write checks for AC-42.
 
@@ -166,7 +166,7 @@ The code already handled this case, so the test passed on its first run and has 
 
 | Who | Where | Mutated (no `bookingConflict` in the reschedule `catch`) | Restored |
 |---|---|---|---|
-| Tanadet Nuchaikaew | Local PostgreSQL 16 test database | Failed 3 of 3 runs at the new case: `[201, 500]` instead of `[201, 409]` | `reschedule.test.ts` passed 3 of 3 runs; `git status` clean afterwards |
+| Tanadet Nuchaikaew, through Claude Code | Local PostgreSQL 16 test database | Failed 3 of 3 runs at the new case: `[201, 500]` instead of `[201, 409]` | `reschedule.test.ts` passed 3 of 3 runs; `git status` clean afterwards |
 
 Not covered yet: the deployed-release check runs after the Sprint 2 release.
 
@@ -180,3 +180,4 @@ Not covered yet: the deployed-release check runs after the Sprint 2 release.
 | 0.4 | 2026-11-27 | Tanadet Nuchaikaew | PR #69 review: TC-CLOSE-05 mutation check (no `FOR UPDATE`) by Thawat Boonsuk and Tanadet Nuchaikaew. |
 | 0.5 | 2026-11-27 | Tanadet Nuchaikaew | F-06: TDD order, CI runs 46021926341 (RED) and 46024245235 (GREEN), AC-30 to AC-36 and AC-42 to AC-44 mapping, `lockBooking` mutation check. |
 | 0.6 | 2026-11-27 | Tanadet Nuchaikaew | PR #70 review: Thawat Boonsuk's mutation runs; new TC-MOVE-06 case for one student's two moves into one hour, with a `bookingConflict` mutation check. |
+| 0.7 | 2026-11-27 | Tanadet Nuchaikaew | PR #71 review: the mutation and rerun checks credited to Thawat Boonsuk and Tanadet Nuchaikaew were run through Claude Code; each row now says so, to match the AI-use declarations. |
