@@ -131,7 +131,7 @@ The UI RED (TC-E2E-06 failing) exists only as a local run, because CI stops at t
 | AC-32 | TC-MOVE-03 | Move into an hour A holds on another machine `409 STUDENT_TIME_CONFLICT`, original kept; move to another machine at the original's own hour `201`. | Passed |
 | AC-33 | TC-MOVE-04 | Target at 13:29:59.999 `201`, 13:30:00.000 `409 BOOKING_CLOSED`, 14:00 `409 SLOT_ALREADY_STARTED`; started original `409 BOOKING_ALREADY_STARTED`; every rejected move leaves the original confirmed. | Passed |
 | AC-34 | TC-MOVE-05 | Other student `404 BOOKING_NOT_FOUND`, operator `403`, no cookie `401`, cancelled and rescheduled originals `409 BOOKING_NOT_CONFIRMED`, `slotId: "x"` `400 INVALID_SLOT_ID` with both a valid and another student's booking ID, unknown slot `404 SLOT_NOT_FOUND`, own slot `409 SAME_SLOT`; no row changes. | Passed |
-| AC-35 | TC-MOVE-06 | 5 rounds each: two students moving to one target, exactly one `201` and the other `409 SLOT_ALREADY_BOOKED` with its original confirmed; two moves of one booking, exactly one `201` and the other `409 BOOKING_NOT_CONFIRMED`. No `5xx`. | Passed |
+| AC-35 | TC-MOVE-06 | 5 rounds each: two students moving to one target, exactly one `201` and the other `409 SLOT_ALREADY_BOOKED` with its original confirmed; two moves of one booking, exactly one `201` and the other `409 BOOKING_NOT_CONFIRMED`. No `5xx`. The third case, added after the PR #70 review, is below. | Passed |
 | AC-36 | TC-MOVE-07 | Move to a closed slot `409 SLOT_CLOSED`; original confirmed. | Passed |
 | AC-42 | TC-MOVE-08 | 10 rounds each of a swap (both `409 SLOT_ALREADY_BOOKED`) and a cross-move (both `409 STUDENT_TIME_CONFLICT`); no `500`, both originals confirmed. | Passed |
 | AC-43 | TC-MOVE-09 | 10 rounds of a cancel and a move of one booking sent together: exactly one wins; the loser gets `409 BOOKING_NOT_CONFIRMED`; no replacement when the cancel wins, replacement confirmed when the move wins. | Passed |
@@ -149,6 +149,25 @@ TC-ACCESS-02 was revised again, as planned in the contract: its strict `toEqual`
 
 TC-MOVE-08 (swap and cross-move) still passed under the mutation. It depends on the conflict checks that run before any write, not on the booking lock, which matches the contract's reason for those checks.
 
+### PR #70 review
+
+Thawat Boonsuk approved PR #70 at `eb9fcef` after his own runs in temporary schemas, dropped afterwards: RED 11 failures at `bbfaf53`; GREEN Vitest 66/66, Playwright 7/7 and the restart check; the reschedule, close and cancel files 3 times, 22/22 each. He also ran the mutation the PR had not: with the two pre-write checks (slot taken, same hour) removed, TC-MOVE-08 got a `500` from the deadlock and failed in every run, with or without an extra delay. His `lockBooking` mutation matched the one above.
+
+| Mutation | Who | Result |
+|---|---|---|
+| Pre-write checks removed | Thawat Boonsuk (at `eb9fcef`) | TC-MOVE-08 failed in every run (`500`, deadlock) |
+| No `FOR UPDATE` in `lockBooking` | Thawat Boonsuk (at `eb9fcef`) | TC-MOVE-06 and TC-MOVE-09 failed in every run |
+
+So both halves of the design are needed: the booking lock for AC-35 and AC-43, the pre-write checks for AC-42.
+
+He noted that no test covered the last race the contract leaves to the indexes: one student moving two bookings into the same hour on different machines at once. The two transactions lock different rows, so the pre-write check can miss the other's uncommitted booking and the student-hour index refuses the second insert. TC-MOVE-06 now has that case (test specification 0.5): 5 rounds, exactly one `201` and one `409 STUDENT_TIME_CONFLICT`, the loser's original confirmed with no replacement.
+
+The code already handled this case, so the test passed on its first run and has no RED. To show it can fail, the reschedule route was run with the `bookingConflict` mapping removed from its `catch` (never committed):
+
+| Who | Where | Mutated (no `bookingConflict` in the reschedule `catch`) | Restored |
+|---|---|---|---|
+| Tanadet Nuchaikaew | Local PostgreSQL 16 test database | Failed 3 of 3 runs at the new case: `[201, 500]` instead of `[201, 409]` | `reschedule.test.ts` passed 3 of 3 runs; `git status` clean afterwards |
+
 Not covered yet: the deployed-release check runs after the Sprint 2 release.
 
 ## Version history
@@ -160,3 +179,4 @@ Not covered yet: the deployed-release check runs after the Sprint 2 release.
 | 0.3 | 2026-11-27 | Tanadet Nuchaikaew | F-07: TDD order, CI runs 45951713384 (RED) and 45951910649 (GREEN), AC-37 to AC-41 mapping. |
 | 0.4 | 2026-11-27 | Tanadet Nuchaikaew | PR #69 review: TC-CLOSE-05 mutation check (no `FOR UPDATE`) by Thawat Boonsuk and Tanadet Nuchaikaew. |
 | 0.5 | 2026-11-27 | Tanadet Nuchaikaew | F-06: TDD order, CI runs 46021926341 (RED) and 46024245235 (GREEN), AC-30 to AC-36 and AC-42 to AC-44 mapping, `lockBooking` mutation check. |
+| 0.6 | 2026-11-27 | Tanadet Nuchaikaew | PR #70 review: Thawat Boonsuk's mutation runs; new TC-MOVE-06 case for one student's two moves into one hour, with a `bookingConflict` mutation check. |
