@@ -3,7 +3,7 @@ import { apiRequest, bangkokToday, formatBangkokDate, formatBangkokTime } from '
 import { Alert, Button, Card, Input, StatusBadge } from './components';
 
 type Slot = { slotId: number; machineCode: string; startAt: string; endAt: string };
-type Booking = Slot & { bookingId: number };
+type Booking = Slot & { bookingId: number; status: 'confirmed' | 'cancelled' | 'rescheduled'; cancelledAt: string | null };
 type Slots = { state: 'no-date' } | { state: 'loading' } | { state: 'error'; message: string } | { state: 'ready'; data: Slot[] };
 type MyBookings = { state: 'loading' } | { state: 'error'; message: string } | { state: 'ready'; data: Booking[] };
 
@@ -15,6 +15,9 @@ export function StudentWorkspace() {
   const [booking, setBooking] = useState<Booking | null>(null);
   const [notice, setNotice] = useState<{ error: boolean; text: string } | null>(null);
   const [myBookings, setMyBookings] = useState<MyBookings>({ state: 'loading' });
+  // F-05: the booking whose cancellation is awaiting confirmation, and the result of the last cancel.
+  const [confirming, setConfirming] = useState<number | null>(null);
+  const [listNotice, setListNotice] = useState<{ error: boolean; text: string } | null>(null);
 
   // F-04 My Bookings: reloaded after every booking attempt so it always matches the server.
   useEffect(() => {
@@ -58,12 +61,27 @@ export function StudentWorkspace() {
       method: 'POST', body: JSON.stringify({ slotId: slot.slotId }),
     });
     if (result.ok) {
-      setBooking({ ...slot, bookingId: result.data.bookingId });
+      setBooking({ ...slot, bookingId: result.data.bookingId, status: 'confirmed', cancelledAt: null });
       history.replaceState(null, '', `?booking=${result.data.bookingId}`);
       setNotice({ error: false, text: 'Your booking is confirmed.' });
     } else {
       setNotice({ error: true, text: result.error.message });
     }
+    setPending(false);
+    setRefresh(value => value + 1);
+  }
+
+  async function cancel(item: Booking) {
+    setPending(true);
+    setListNotice(null);
+    const result = await apiRequest<Booking>(`/bookings/${item.bookingId}/cancel`, { method: 'POST' });
+    if (result.ok) {
+      setListNotice({ error: false, text: 'Booking cancelled.' });
+      setBooking(current => (current?.bookingId === item.bookingId ? result.data : current));
+    } else {
+      setListNotice({ error: true, text: result.error.message });
+    }
+    setConfirming(null);
     setPending(false);
     setRefresh(value => value + 1);
   }
@@ -91,7 +109,7 @@ export function StudentWorkspace() {
     </Card>
     <div className="workspace-column">
       {booking && <Card className="booking-detail" aria-labelledby="saved-booking">
-        <StatusBadge tone="booked">Confirmed</StatusBadge>
+        <BookingBadge booking={booking} />
         <h2 id="saved-booking" className="booking-meta">Saved booking #{booking.bookingId}</h2>
         <p>{booking.machineCode} · {formatBangkokDate(booking.startAt)} · {formatBangkokTime(booking.startAt)}–{formatBangkokTime(booking.endAt)} (Bangkok)</p>
         <a href={`?booking=${booking.bookingId}`}>Open saved booking</a>
@@ -99,18 +117,39 @@ export function StudentWorkspace() {
       <Card aria-labelledby="my-bookings">
         <div className="card-heading"><h2 id="my-bookings">My bookings</h2><p>Your saved reservations, ordered by start time.</p></div>
         {myBookings.state === 'loading' && <Alert tone="loading">Loading your bookings…</Alert>}
+        {listNotice && <Alert tone={listNotice.error ? 'error' : 'success'}>{listNotice.text}</Alert>}
         {myBookings.state === 'error' && <Alert tone="error">{myBookings.message}</Alert>}
         {myBookings.state === 'ready' && myBookings.data.length === 0 && <Alert tone="empty">You have no bookings yet.</Alert>}
         {myBookings.state === 'ready' && myBookings.data.length > 0 && <ul className="schedule" aria-label="My bookings">
-          {myBookings.data.map(item => <li key={item.bookingId}>
-            <StatusBadge tone={new Date(item.startAt).getTime() <= Date.now() ? 'past' : 'booked'}>
-              {new Date(item.startAt).getTime() <= Date.now() ? 'Started / past' : 'Confirmed'}</StatusBadge>
-            <a className="booking-link" href={`?booking=${item.bookingId}`}>
-              {item.machineCode} · {formatBangkokDate(item.startAt)} · {formatBangkokTime(item.startAt)}–{formatBangkokTime(item.endAt)}
-            </a>
-          </li>)}
+          {myBookings.data.map(item => {
+            const label = `${item.machineCode} on ${formatBangkokDate(item.startAt)} at ${formatBangkokTime(item.startAt)}`;
+            // The API decides; the UI only offers Cancel while the booking is confirmed and upcoming (AC-26).
+            const cancellable = item.status === 'confirmed' && new Date(item.startAt).getTime() > Date.now();
+            return <li className="slot-row" key={item.bookingId}>
+              <div className="slot-info">
+                <span><BookingBadge booking={item} /></span>
+                <a className="booking-link" href={`?booking=${item.bookingId}`}>
+                  {item.machineCode} · {formatBangkokDate(item.startAt)} · {formatBangkokTime(item.startAt)}–{formatBangkokTime(item.endAt)}
+                </a>
+                {item.cancelledAt && <span>Cancelled at {formatBangkokTime(item.cancelledAt)} on {formatBangkokDate(item.cancelledAt)}</span>}
+              </div>
+              {cancellable && confirming !== item.bookingId && <Button variant="secondary" disabled={pending}
+                aria-label={`Cancel ${label}`} onClick={() => { setListNotice(null); setConfirming(item.bookingId); }}>Cancel</Button>}
+              {cancellable && confirming === item.bookingId && <div className="booking-actions">
+                <Button disabled={pending} aria-busy={pending} onClick={() => void cancel(item)}>Confirm cancellation</Button>
+                <Button variant="secondary" disabled={pending} onClick={() => setConfirming(null)}>Keep booking</Button>
+              </div>}
+            </li>;
+          })}
         </ul>}
       </Card>
     </div>
   </div>;
+}
+
+/** Status label for a student booking: cancelled history, a started booking, or a confirmed upcoming one. */
+function BookingBadge({ booking }: { booking: Booking }) {
+  if (booking.status === 'cancelled') return <StatusBadge tone="past">Cancelled</StatusBadge>;
+  if (new Date(booking.startAt).getTime() <= Date.now()) return <StatusBadge tone="past">Started / past</StatusBadge>;
+  return <StatusBadge tone="booked">Confirmed</StatusBadge>;
 }

@@ -13,16 +13,16 @@
 
 ## Observable scope and implementation stage
 
-| Feature | Refined requirement IDs | Stage as of 2026-11-25 |
+| Feature | Refined requirement IDs | Stage as of 2026-11-27 |
 |---|---|---|
 | F-01 | FR-02.1 to FR-02.4 | Reviewed implementation merged into Sprint 1 staging (PR #7). |
 | F-02 | FR-03.1 to FR-03.3, FR-05.3 | Reviewed implementation merged into Sprint 1 staging (PR #8). |
 | F-03 | FR-01.1 to FR-01.4, FR-04.1 to FR-04.3, FR-05.2 | Reviewed implementation merged into Sprint 1 staging (PR #9). |
 | F-04 | FR-05.1, FR-05.3, FR-05.4 | Reviewed implementation merged into Sprint 1 staging (PR #10). |
-| F-05 | FR-06.1 to FR-06.3 | Sprint 2 contract 0.2 drafted (AC-24 to AC-29, proposed D-09 and D-12); awaiting review before code. |
-| F-06 | FR-07.1 to FR-07.3 | Sprint 2 contract 0.2 drafted (AC-30 to AC-36, AC-42, AC-43; D-08, proposed D-10); awaiting review; built after F-05. |
-| F-07 | FR-08.1 to FR-08.2 | Sprint 2 contract 0.2 drafted (AC-37 to AC-41, AC-44; proposed D-13), including closure/booking serialization; awaiting review. |
-| F-08 | FR-09.1 to FR-09.2 | Sprint 3 Backlog; report predicates proposed in D-11; contract next. |
+| F-05 | FR-06.1 to FR-06.3 | Contract 0.3 accepted (PR #67). Implemented and tested locally on `feature/12-cancel-booking` (see [Sprint 2 verification](sprints/sprint-2/verification.md)); PR review pending. |
+| F-06 | FR-07.1 to FR-07.3 | Contract 0.3 accepted (PR #67) (AC-30 to AC-36, AC-42, AC-43; D-08, D-10); built after F-05. |
+| F-07 | FR-08.1 to FR-08.2 | Contract 0.3 accepted (PR #67) (AC-37 to AC-41, AC-44; D-13), including closure/booking serialization. |
+| F-08 | FR-09.1 to FR-09.2 | Sprint 3 Backlog; report predicates fixed by D-11; contract next. |
 
 F-02 supplies the schedule; F-04 adds its reservation details. UI-01 (#6), integrated acceptance evidence, release preparation and documentation are supporting work items; they do not introduce new product feature IDs. See [work tracking](work-tracking.md) and the [verification record](sprints/sprint-1/verification.md).
 
@@ -39,3 +39,4 @@ See the [requirements mapping](traceability.md), [sprint outcomes](sprints/plan.
 | 0.5 | 2026-11-24 | Tanadet Nuchaikaew | Lab 7 CR-01: F-03 booking closes 30 minutes before the slot starts. |
 | 0.6 | 2026-11-25 | Tanadet Nuchaikaew | Sprint 2 planning: F-05 to F-07 contracts drafted; F-08 predicates proposed (D-11). |
 | 0.7 | 2026-11-26 | Tanadet Nuchaikaew | PR #67 review: contract 0.2 AC ranges; decisions shown as proposed. |
+| 0.8 | 2026-11-27 | Tanadet Nuchaikaew | Contracts accepted in PR #67; F-05 implemented on its feature branch. |
