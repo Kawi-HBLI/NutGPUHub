@@ -1,8 +1,8 @@
 // TC-PERSIST-01 at system level (AC-15, NFR-02): book through a real Node server process,
 // stop that process, start a new one on the same database, and read the booking back.
 // TC-PERSIST-02 (Sprint 2, AC-29): a booking cancelled before the restart keeps its status and
-// cancelledAt afterwards (AC-29), and a slot closed before the restart keeps closedAt (F-07, AC-37).
-// F-06 extends this check with a rescheduled pair.
+// cancelledAt afterwards (AC-29), a slot closed before the restart keeps closedAt (F-07, AC-37),
+// and a rescheduled original and its replacement keep their statuses and links (F-06, AC-30).
 // Run with `npm run verify:restart`. Uses TEST_DATABASE_URL and cleans up its own records.
 import { spawn, type ChildProcess } from 'node:child_process';
 import { randomBytes, randomUUID } from 'node:crypto';
@@ -70,6 +70,8 @@ try {
   const slot = await database.slot.create({ data: { machineId, startAt } });
   const cancelSlot = await database.slot.create({ data: { machineId, startAt: new Date(startAt.getTime() + 3_600_000) } });
   const closeSlot = await database.slot.create({ data: { machineId, startAt: new Date(startAt.getTime() + 2 * 3_600_000) } });
+  const moveFrom = await database.slot.create({ data: { machineId, startAt: new Date(startAt.getTime() + 3 * 3_600_000) } });
+  const moveTo = await database.slot.create({ data: { machineId, startAt: new Date(startAt.getTime() + 4 * 3_600_000) } });
   // The schedule route takes a Bangkok calendar date (UTC+7, no daylight saving).
   const closeDate = new Date(closeSlot.startAt.getTime() + 7 * 3_600_000).toISOString().slice(0, 10);
 
@@ -103,6 +105,23 @@ try {
   const cancelledBefore = await cancelled.json() as { status: string; cancelledAt: string };
   log(`booking ${cancelledId} cancelled at ${cancelledBefore.cancelledAt}`);
 
+  const toMove = await fetch(`${origin}/api/v1/bookings`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json', Origin: origin, Cookie: cookie },
+    body: JSON.stringify({ slotId: moveFrom.id }),
+  });
+  const { bookingId: movedId } = await toMove.json() as { bookingId: number };
+  const moved = await fetch(`${origin}/api/v1/bookings/${movedId}/reschedule`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json', Origin: origin, Cookie: cookie },
+    body: JSON.stringify({ slotId: moveTo.id }),
+  });
+  expectEqual('booking rescheduled with 201 before restart', moved.status, 201);
+  const { bookingId: replacementId } = await moved.json() as { bookingId: number };
+  const movedBefore = await (await fetch(`${origin}/api/v1/bookings/${movedId}`, { headers: { Cookie: cookie } })).json();
+  const replacementBefore = await (await fetch(`${origin}/api/v1/bookings/${replacementId}`, { headers: { Cookie: cookie } })).json();
+  expectEqual('original is rescheduled and links to its replacement', [movedBefore.status, movedBefore.replacedByBookingId], ['rescheduled', replacementId]);
+  expectEqual('replacement is confirmed and links to the original', [replacementBefore.status, replacementBefore.replacesBookingId], ['confirmed', movedId]);
+  log(`booking ${movedId} rescheduled to booking ${replacementId}`);
+
   const operatorLogin = await fetch(`${origin}/api/v1/auth/login`, {
     method: 'POST', headers: { 'Content-Type': 'application/json', Origin: origin },
     body: JSON.stringify({ username: operator.username, password }),
@@ -129,7 +148,7 @@ try {
   expectEqual('booking detail after restart matches before restart', await detail.json(), before);
   const list = await fetch(`${origin}/api/v1/bookings`, { headers: { Cookie: cookie } });
   const rows = await list.json() as { bookingId: number }[];
-  expectEqual('My Bookings after restart contains both bookings', rows.map(row => row.bookingId), [bookingId, cancelledId]);
+  expectEqual('My Bookings after restart contains every booking', rows.map(row => row.bookingId), [bookingId, cancelledId, movedId, replacementId]);
   log('TC-PERSIST-01 process restart check passed');
 
   const cancelledAfter = await fetch(`${origin}/api/v1/bookings/${cancelledId}`, { headers: { Cookie: cookie } });
@@ -142,6 +161,12 @@ try {
   const closedRow = (await scheduleAfter.json() as { slotId: number; closedAt: string | null }[]).find(row => row.slotId === closeSlot.id);
   expectEqual('closed slot after restart keeps closedAt', closedRow?.closedAt, closedAt);
   log('TC-PERSIST-02 close part (AC-37) passed');
+
+  const movedAfter = await (await fetch(`${origin}/api/v1/bookings/${movedId}`, { headers: { Cookie: cookie } })).json();
+  const replacementAfter = await (await fetch(`${origin}/api/v1/bookings/${replacementId}`, { headers: { Cookie: cookie } })).json();
+  expectEqual('rescheduled original after restart matches before restart', movedAfter, movedBefore);
+  expectEqual('replacement after restart matches before restart', replacementAfter, replacementBefore);
+  log('TC-PERSIST-02 reschedule part (AC-30) passed');
 } finally {
   if (server && server.exitCode === null) await stopServer(server);
   await database.booking.deleteMany({ where: { studentId: { in: userIds } } });
