@@ -1,5 +1,7 @@
 // TC-PERSIST-01 at system level (AC-15, NFR-02): book through a real Node server process,
 // stop that process, start a new one on the same database, and read the booking back.
+// TC-PERSIST-02 (Sprint 2, AC-29): a booking cancelled before the restart keeps its status and
+// cancelledAt afterwards. F-06 and F-07 extend this check with a rescheduled pair and a closed slot.
 // Run with `npm run verify:restart`. Uses TEST_DATABASE_URL and cleans up its own records.
 import { spawn, type ChildProcess } from 'node:child_process';
 import { randomBytes, randomUUID } from 'node:crypto';
@@ -65,6 +67,7 @@ try {
   machineId = machine.id;
   const startAt = new Date(Math.ceil(Date.now() / 3_600_000) * 3_600_000 + 48 * 3_600_000);
   const slot = await database.slot.create({ data: { machineId, startAt } });
+  const cancelSlot = await database.slot.create({ data: { machineId, startAt: new Date(startAt.getTime() + 3_600_000) } });
 
   server = startServer();
   await waitUntil(reachable, 'the first server process');
@@ -84,6 +87,18 @@ try {
   const before = await (await fetch(`${origin}/api/v1/bookings/${bookingId}`, { headers: { Cookie: cookie } })).json();
   log(`booking ${bookingId} for slot ${slot.id} on ${machine.code} at ${startAt.toISOString()}`);
 
+  const toCancel = await fetch(`${origin}/api/v1/bookings`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json', Origin: origin, Cookie: cookie },
+    body: JSON.stringify({ slotId: cancelSlot.id }),
+  });
+  const { bookingId: cancelledId } = await toCancel.json() as { bookingId: number };
+  const cancelled = await fetch(`${origin}/api/v1/bookings/${cancelledId}/cancel`, {
+    method: 'POST', headers: { Origin: origin, Cookie: cookie },
+  });
+  expectEqual('booking cancelled with 200 before restart', cancelled.status, 200);
+  const cancelledBefore = await cancelled.json() as { status: string; cancelledAt: string };
+  log(`booking ${cancelledId} cancelled at ${cancelledBefore.cancelledAt}`);
+
   const firstPid = server.pid;
   await stopServer(server);
   log(`first server process ${firstPid} stopped, port ${port} closed`);
@@ -98,8 +113,13 @@ try {
   expectEqual('booking detail after restart matches before restart', await detail.json(), before);
   const list = await fetch(`${origin}/api/v1/bookings`, { headers: { Cookie: cookie } });
   const rows = await list.json() as { bookingId: number }[];
-  expectEqual('My Bookings after restart contains the booking', rows.map(row => row.bookingId), [bookingId]);
+  expectEqual('My Bookings after restart contains both bookings', rows.map(row => row.bookingId), [bookingId, cancelledId]);
   log('TC-PERSIST-01 process restart check passed');
+
+  const cancelledAfter = await fetch(`${origin}/api/v1/bookings/${cancelledId}`, { headers: { Cookie: cookie } });
+  expectEqual('cancelled booking after restart returns 200', cancelledAfter.status, 200);
+  expectEqual('cancelled booking after restart matches before restart', await cancelledAfter.json(), cancelledBefore);
+  log('TC-PERSIST-02 cancel part (AC-29) passed');
 } finally {
   if (server && server.exitCode === null) await stopServer(server);
   await database.booking.deleteMany({ where: { studentId: { in: userIds } } });
