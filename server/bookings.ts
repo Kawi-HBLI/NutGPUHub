@@ -3,6 +3,7 @@ import express from 'express';
 import { asyncRoute, currentAccount, sendError } from './http.js';
 import { slotView } from './machines.js';
 import type { createSessionGuard } from './session.js';
+import { lockSlot } from './slot-lock.js';
 import { bangkokDayRange, bookingCutoffMs } from './time.js';
 
 type Guard = ReturnType<typeof createSessionGuard>;
@@ -51,7 +52,8 @@ export function createStudentRouter(database: PrismaClient, clock: () => number,
     }
     const slots = await database.slot.findMany({
       // Only slots that can still be booked: the start is more than 30 minutes away (AC-11, CR-01).
-      where: { startAt: { gte: day.start, lt: day.end, gt: new Date(clock() + bookingCutoffMs) }, bookings: { none: { status: CONFIRMED } } },
+      // F-07: closed slots are never offered (AC-38).
+      where: { startAt: { gte: day.start, lt: day.end, gt: new Date(clock() + bookingCutoffMs) }, closedAt: null, bookings: { none: { status: CONFIRMED } } },
       include: { machine: { select: { code: true } } },
       orderBy: [{ startAt: 'asc' }, { id: 'asc' }],
     });
@@ -64,31 +66,37 @@ export function createStudentRouter(database: PrismaClient, clock: () => number,
       sendError(response, 400, 'INVALID_SLOT_ID', 'Choose a valid slot.');
       return;
     }
-    const slot = await database.slot.findUnique({ where: { id: slotId } });
-    if (!slot) {
-      sendError(response, 404, 'SLOT_NOT_FOUND', 'The slot does not exist.');
-      return;
-    }
     const now = clock();
-    if (slot.startAt.getTime() <= now) {
-      sendError(response, 409, 'SLOT_ALREADY_STARTED', 'This slot has already started.');
-      return;
-    }
-    // Checked before the insert, so a booked slot inside the window also gets BOOKING_CLOSED (AC-03, CR-01).
-    if (slot.startAt.getTime() - bookingCutoffMs <= now) {
-      sendError(response, 409, 'BOOKING_CLOSED', 'Booking closes 30 minutes before the slot starts.');
-      return;
-    }
+    const studentId = currentAccount(response).id;
+    type Refusal = { status: number; code: string; message: string };
+    let outcome: { refusal: Refusal } | { bookingId: number };
     try {
-      const booking = await database.booking.create({ data: {
-        slotId: slot.id, studentId: currentAccount(response).id, slotStartAt: slot.startAt,
-      } });
-      response.location(`/api/v1/bookings/${booking.id}`).status(201).json({ bookingId: booking.id, slotId: slot.id });
+      // F-07: lock the slot first so a concurrent close and this booking cannot both succeed (AC-41).
+      outcome = await database.$transaction(async tx => {
+        const slot = await lockSlot(tx, slotId);
+        if (!slot) return { refusal: { status: 404, code: 'SLOT_NOT_FOUND', message: 'The slot does not exist.' } };
+        if (slot.closedAt) return { refusal: { status: 409, code: 'SLOT_CLOSED', message: 'This slot has been closed.' } };
+        if (slot.startAt.getTime() <= now) {
+          return { refusal: { status: 409, code: 'SLOT_ALREADY_STARTED', message: 'This slot has already started.' } };
+        }
+        // Checked before the insert, so a booked slot inside the window also gets BOOKING_CLOSED (AC-03, CR-01).
+        if (slot.startAt.getTime() - bookingCutoffMs <= now) {
+          return { refusal: { status: 409, code: 'BOOKING_CLOSED', message: 'Booking closes 30 minutes before the slot starts.' } };
+        }
+        const booking = await tx.booking.create({ data: { slotId: slot.id, studentId, slotStartAt: slot.startAt } });
+        return { bookingId: booking.id };
+      });
     } catch (error) {
       const conflict = bookingConflict(error);
       if (!conflict) throw error;
       sendError(response, 409, conflict.code, conflict.message);
+      return;
     }
+    if ('refusal' in outcome) {
+      sendError(response, outcome.refusal.status, outcome.refusal.code, outcome.refusal.message);
+      return;
+    }
+    response.location(`/api/v1/bookings/${outcome.bookingId}`).status(201).json({ bookingId: outcome.bookingId, slotId });
   }));
 
   /** F-04 My Bookings: only the signed-in student's bookings, soonest first (AC-18). */
