@@ -1,5 +1,5 @@
 // F-07 close a slot (#14). Sprint 2 contract 0.3, AC-37 to AC-41 (TC-CLOSE-01 to 05).
-// TC-CLOSE-06 (close against a move, AC-44) needs F-06 and is added with it.
+// TC-CLOSE-06 (close against a move, AC-44) was added with F-06 (#13).
 import { randomBytes, randomUUID } from 'node:crypto';
 import { PrismaClient } from '@prisma/client';
 import request from 'supertest';
@@ -159,6 +159,36 @@ test('TC-CLOSE-05 a close and a booking sent together: exactly one wins and the 
       expect(await closedAt(target.id)).not.toBeNull();
     } else {
       expect(closeResult.body.error.code).toBe('SLOT_ALREADY_BOOKED');
+      expect(await confirmedBookings(target.id)).toBe(1);
+      expect(await closedAt(target.id)).toBeNull();
+    }
+  }
+});
+
+test('TC-CLOSE-06 a close and a move into the same slot sent together: exactly one wins (AC-44)', async () => {
+  for (let round = 0; round < 10; round += 1) {
+    // A fresh date each round, because a winning move leaves student A holding the target hour (BR-04).
+    const date = `2031-04-${String(round + 11).padStart(2, '0')}`;
+    const original = await book((await slot(`${date}T10:00:00+07:00`)).id).expect(201);
+    const target = await slot(`${date}T12:00:00+07:00`);
+    const originalId = original.body.bookingId as number;
+
+    const [closeResult, moveResult] = await Promise.all([
+      close(target.id),
+      request(app).post(`/api/v1/bookings/${originalId}/reschedule`).set('Origin', origin).set('Cookie', cookies[0])
+        .send({ slotId: target.id }),
+    ]);
+    const statuses = [closeResult.status, moveResult.status];
+    expect(statuses.filter(status => status >= 200 && status < 300)).toHaveLength(1);
+    expect(statuses.filter(status => status >= 500)).toHaveLength(0);
+    const originalStatus = (await database.booking.findUniqueOrThrow({ where: { id: originalId } })).status;
+    if (closeResult.status === 200) {
+      expect(moveResult.body.error.code).toBe('SLOT_CLOSED');
+      expect(originalStatus).toBe('confirmed');
+      expect(await confirmedBookings(target.id)).toBe(0);
+    } else {
+      expect(closeResult.body.error.code).toBe('SLOT_ALREADY_BOOKED');
+      expect(originalStatus).toBe('rescheduled');
       expect(await confirmedBookings(target.id)).toBe(1);
       expect(await closedAt(target.id)).toBeNull();
     }

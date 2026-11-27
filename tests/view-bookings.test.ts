@@ -65,12 +65,13 @@ test('TC-ACCESS-02 limits booking lists and details to their owner and schedules
   const bookingB = await book(slotB.id, 'studentB');
 
   // AC-18: the list contains only the signed-in student's bookings.
-  // Sprint 2 F-05 revision (test specification 0.3): entries also carry status and cancelledAt.
+  // Sprint 2 revisions (test specification 0.3): entries also carry status and cancelledAt (F-05),
+  // and replacesBookingId and replacedByBookingId (F-06).
   const listA = await request(app).get('/api/v1/bookings').set('Cookie', cookies.studentA).expect(200);
   expect(listA.body).toEqual([{
     bookingId: bookingA, slotId: slotA.id, machineId, machineCode,
     startAt: '2032-01-01T03:00:00.000Z', endAt: '2032-01-01T04:00:00.000Z',
-    status: 'confirmed', cancelledAt: null,
+    status: 'confirmed', cancelledAt: null, replacesBookingId: null, replacedByBookingId: null,
   }]);
 
   // AC-09: another student's booking is not disclosed.
