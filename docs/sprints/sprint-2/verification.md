@@ -202,7 +202,7 @@ The live checks were run on 2026-11-28 through Claude Code in the browser. Tanad
 | F-06 reschedule | `student-a` | #8 moved to slot 10: #8 `rescheduled` with "New booking #9", #9 `confirmed` with "Moved from booking #8", slot 7 free again |
 | NFR-02 after redeploy | `student-a` | Deploy demo run 46129996706 redeployed image `426da1f` (migration and seed skipped) to revision `nutgpuhub-00011-c4f`. All eight `student-a` bookings matched the snapshot taken before the redeploy (#7 `cancelled`, #8 `rescheduled`, #9 `confirmed`), the same session still worked, and slot 11 still returned `409 SLOT_CLOSED` |
 
-Test data left on the live site: bookings #7, #8 and #9 of `student-a`, and slots 10 (booked by #9) and 11 (closed) on GPU-01 on 2026-12-03. Seed bookings #1 to #6 were not changed.
+Test data left on the live site: bookings #7, #8 and #9 of `student-a`, and slots 10 (booked by #9) and 11 (closed) on GPU-01 on 2026-12-03. The earlier bookings #1 to #6, left over from earlier live checks (`prisma/seed.ts` creates only accounts and machines), were not changed.
 
 ## Version history
 
@@ -216,4 +216,4 @@ Test data left on the live site: bookings #7, #8 and #9 of `student-a`, and slot
 | 0.6 | 2026-11-27 | Tanadet Nuchaikaew | PR #70 review: Thawat Boonsuk's mutation runs; new TC-MOVE-06 case for one student's two moves into one hour, with a `bookingConflict` mutation check. |
 | 0.7 | 2026-11-27 | Tanadet Nuchaikaew | PR #71 review: the mutation and rerun checks credited to Thawat Boonsuk and Tanadet Nuchaikaew were run through Claude Code; each row now says so, to match the AI-use declarations. |
 | 0.8 | 2026-11-28 | Tanadet Nuchaikaew | Release regression at `c506704` and TC-X-01 (cross-feature), added before the Sprint 2 release. |
-| 0.9 | 2026-11-28 | Tanadet Nuchaikaew | Deployed release check after PR #75: backup, deploy run, live checks of F-05 to F-07 and the Sprint 1 path, and NFR-02 across a redeploy. |
+| 0.9 | 2026-11-28 | Tanadet Nuchaikaew | Deployed release check after PR #75: backup, deploy run, live checks of F-05 to F-07 and the Sprint 1 path, and NFR-02 across a redeploy. Bookings #1 to #6 called earlier bookings, not seed data (PR #76 review). |
