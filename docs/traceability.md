@@ -64,10 +64,10 @@ Every baseline FR, its observable children, BR and NFR has a feature or responsi
 
 | Requirement | Feature | Sprint | AC or NFR check | Test files | Result | Version |
 |---|---|---|---|---|---|---|
-| FR-01 to FR-05, BR-01, BR-04, NFR-03 | F-01 to F-04 | 1 | AC-01 to AC-23 | `tests/auth`, `slots`, `bookings`, `view-bookings`, `time`, `availability-empty-day` tests; `e2e/bookings.spec.ts`, `cleared-date.spec.ts` | Passed | `sprint-1` (`984c4ad`); rerun in every later suite, last full run 74/74 on `b116103` |
-| FR-06, BR-04 | F-05 | 2 | AC-24 to AC-29 | `tests/cancel-booking.test.ts`, `e2e/cancel-booking.spec.ts`, `scripts/process-restart-check.ts` | Passed; live check passed | `sprint-2` (`426da1f`) |
-| FR-07, BR-03, BR-04 | F-06 | 2 | AC-30 to AC-36, AC-42, AC-43 | `tests/reschedule.test.ts`, `e2e/reschedule.spec.ts`, `scripts/process-restart-check.ts` | Passed; live check passed | `sprint-2` (`426da1f`) |
-| FR-08 | F-07 | 2 | AC-37 to AC-41, AC-44 | `tests/close-slot.test.ts`, `e2e/close-slot.spec.ts`, `scripts/process-restart-check.ts` | Passed; live check passed | `sprint-2` (`426da1f`) |
+| FR-01 to FR-05, BR-01, BR-02, BR-04, NFR-01, NFR-03 | F-01 to F-04 | 1 | AC-01 to AC-23 (BR-02 and NFR-01 through `TC-ACCESS-01` to 03, `TC-AUTH-02`, `TC-AUTH-03`) | `tests/auth`, `slots`, `bookings`, `view-bookings`, `time`, `availability-empty-day` tests; `e2e/bookings.spec.ts`, `cleared-date.spec.ts` | Passed | `sprint-1` (`984c4ad`); rerun in every later suite, last full run 74/74 on `b116103` |
+| FR-06, BR-02, BR-04, NFR-01 | F-05 | 2 | AC-24 to AC-29 (BR-02 and NFR-01: AC-25) | `tests/cancel-booking.test.ts`, `e2e/cancel-booking.spec.ts`, `scripts/process-restart-check.ts` | Passed; live check passed | `sprint-2` (`426da1f`) |
+| FR-07, BR-02, BR-03, BR-04, NFR-01 | F-06 | 2 | AC-30 to AC-36, AC-42, AC-43 (BR-02 and NFR-01: AC-34) | `tests/reschedule.test.ts`, `e2e/reschedule.spec.ts`, `scripts/process-restart-check.ts` | Passed; live check passed | `sprint-2` (`426da1f`) |
+| FR-08, BR-02, NFR-01 | F-07 | 2 | AC-37 to AC-41, AC-44 (BR-02 and NFR-01: AC-40) | `tests/close-slot.test.ts`, `e2e/close-slot.spec.ts`, `scripts/process-restart-check.ts` | Passed; live check passed | `sprint-2` (`426da1f`) |
 | Cross-feature | F-03, F-05 to F-07 | 2 | TC-X-01 | `tests/cross-feature.test.ts` | Passed | `sprint-2` (`426da1f`) |
 | FR-09, BR-02, NFR-01 | F-08 | 3 | AC-45 to AC-50 | `tests/booking-summary.test.ts` | Passed | `sprint-3-staging` (`b116103`) |
 | FR-09 | F-08 | 3 | AC-51 | `TC-E2E-08` (not written) | Not run | Planned for 13 December |
@@ -101,4 +101,4 @@ The November 7 post-F-04 refinement keeps FR-01 to FR-09, F-01 to F-08 and AC-01
 | 0.8 | 2026-11-26 | Tanadet Nuchaikaew | PR #67 review: added the Sprint 2 AC and tests to the BR-01, BR-02, BR-04, NFR-01 and NFR-02 rows and mapped contract 0.2 (AC-42 to AC-44, TC-PERSIST-02). |
 | 0.9 | 2026-11-27 | Tanadet Nuchaikaew | Mapped FR-09, FR-09.1 and FR-09.2 to the draft Sprint 3 AC and test IDs (planned, not run); AC-50 added to BR-02 and NFR-01; Sprint 2 rows point to their recorded runs (PR #72 review). |
 | 0.10 | 2026-11-28 | Tanadet Nuchaikaew | F-08 rows point to the TC-SUM runs on PR #77; TC-E2E-08 stays planned. |
-| 0.11 | 2026-11-28 | Tanadet Nuchaikaew | Deliverable 2: Sprint 2 rows marked passed and released in `sprint-2`; results table at the candidate; F-08 AC-51 and the F-08 deployed check shown as not run. |
+| 0.11 | 2026-11-28 | Tanadet Nuchaikaew | Deliverable 2: Sprint 2 rows marked passed and released in `sprint-2`; results table at the candidate; F-08 AC-51 and the F-08 deployed check shown as not run. BR-02 and NFR-01 added to the Sprint 1 and F-05 to F-07 result rows (PR #79 review). |
