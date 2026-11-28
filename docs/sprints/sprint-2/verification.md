@@ -170,6 +170,19 @@ The code already handled this case, so the test passed on its first run and has 
 
 Not covered yet: the deployed-release check runs after the Sprint 2 release.
 
+## Release regression on `sprint-2-staging`
+
+Run through Claude Code by Tanadet Nuchaikaew on the local PostgreSQL 16 test database, before the Sprint 2 release PR.
+
+| Check | Commit | Result |
+|---|---|---|
+| `npm test` | `c506704` | 66 passed (66), 11 files |
+| `npm run test:e2e` | `c506704` | 7 passed (TC-E2E-01 to 07) |
+| `npm run verify:restart` | `c506704` | TC-PERSIST-01 and the cancel, close and reschedule parts of TC-PERSIST-02 passed |
+| TC-X-01 (`tests/cross-feature.test.ts`) | this PR | Passed; full `npm test` 67 passed (67) in 3 of 3 runs |
+
+TC-X-01 was listed in the regression set of the test specification but had not been written when F-05 to F-07 merged. It was added afterwards, so it has no RED run: it checks that the features work together, and every step it uses is already covered by its own RED/GREEN tests above. The deployed-release check runs after the release reaches `main`.
+
 ## Version history
 
 | Version | Date | Author | Change |
@@ -181,3 +194,4 @@ Not covered yet: the deployed-release check runs after the Sprint 2 release.
 | 0.5 | 2026-11-27 | Tanadet Nuchaikaew | F-06: TDD order, CI runs 46021926341 (RED) and 46024245235 (GREEN), AC-30 to AC-36 and AC-42 to AC-44 mapping, `lockBooking` mutation check. |
 | 0.6 | 2026-11-27 | Tanadet Nuchaikaew | PR #70 review: Thawat Boonsuk's mutation runs; new TC-MOVE-06 case for one student's two moves into one hour, with a `bookingConflict` mutation check. |
 | 0.7 | 2026-11-27 | Tanadet Nuchaikaew | PR #71 review: the mutation and rerun checks credited to Thawat Boonsuk and Tanadet Nuchaikaew were run through Claude Code; each row now says so, to match the AI-use declarations. |
+| 0.8 | 2026-11-28 | Tanadet Nuchaikaew | Release regression at `c506704` and TC-X-01 (cross-feature), added before the Sprint 2 release. |
