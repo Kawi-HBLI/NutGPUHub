@@ -53,7 +53,7 @@ The local results below were rerun at `1528a7e`, the head that CI tested. `1528a
 | Conflict mapping | TC-DB-02, TC-BOOK-02, TC-BOOK-04 | After a cancellation, a held slot maps to `SLOT_ALREADY_BOOKED` and a held hour to `STUDENT_TIME_CONFLICT`. Sprint 1 tests unchanged and passing. | Passed |
 | AC-18 (revision) | TC-ACCESS-02 | `tests/view-bookings.test.ts:69` strict list now includes `status: confirmed`, `cancelledAt: null`, as listed in the test specification. | Passed |
 
-Not covered yet: the deployed-release check (Cloud Run) runs after the Sprint 2 release. F-06 adds the link fields to the same views and revises TC-ACCESS-02 again.
+The deployed-release check is in [Deployed release check](#deployed-release-check). F-06 adds the link fields to the same views and revises TC-ACCESS-02 again.
 
 ## F-07 close a slot (#14)
 
@@ -98,7 +98,7 @@ TC-CLOSE-05 passing on its own does not show that it can catch a race, so it was
 
 So the race test fails when the slot lock is missing, and the lock is what makes AC-41 pass.
 
-Not covered yet: the deployed-release check runs after the Sprint 2 release. AC-44 (TC-CLOSE-06, close against a move) is covered in the F-06 section.
+The deployed-release check is in [Deployed release check](#deployed-release-check). AC-44 (TC-CLOSE-06, close against a move) is covered in the F-06 section.
 
 ## F-06 reschedule a booking (#13)
 
@@ -168,7 +168,7 @@ The code already handled this case, so the test passed on its first run and has 
 |---|---|---|---|
 | Tanadet Nuchaikaew, through Claude Code | Local PostgreSQL 16 test database | Failed 3 of 3 runs at the new case: `[201, 500]` instead of `[201, 409]` | `reschedule.test.ts` passed 3 of 3 runs; `git status` clean afterwards |
 
-Not covered yet: the deployed-release check runs after the Sprint 2 release.
+The deployed-release check is in [Deployed release check](#deployed-release-check).
 
 ## Release regression on `sprint-2-staging`
 
@@ -179,9 +179,30 @@ Run through Claude Code by Tanadet Nuchaikaew on the local PostgreSQL 16 test da
 | `npm test` | `c506704` | 66 passed (66), 11 files |
 | `npm run test:e2e` | `c506704` | 7 passed (TC-E2E-01 to 07) |
 | `npm run verify:restart` | `c506704` | TC-PERSIST-01 and the cancel, close and reschedule parts of TC-PERSIST-02 passed |
-| TC-X-01 (`tests/cross-feature.test.ts`) | this PR | Passed; full `npm test` 67 passed (67) in 3 of 3 runs |
+| TC-X-01 (`tests/cross-feature.test.ts`) | `d765b68` (PR #73) | Passed; full `npm test` 67 passed (67) in 3 of 3 runs |
 
-TC-X-01 was listed in the regression set of the test specification but had not been written when F-05 to F-07 merged. It was added afterwards, so it has no RED run: it checks that the features work together, and every step it uses is already covered by its own RED/GREEN tests above. The deployed-release check runs after the release reaches `main`.
+TC-X-01 was listed in the regression set of the test specification but had not been written when F-05 to F-07 merged. It was added afterwards, so it has no RED run: it checks that the features work together, and every step it uses is already covered by its own RED/GREEN tests above. The deployed-release check is below.
+
+## Deployed release check
+
+PR #75 released `sprint-2-staging` to `main`. Thawat Boonsuk approved it and merged it with a merge commit, `426da1f`, tagged `sprint-2`. Before the merge he took the on-demand Cloud SQL backup `1795847084374` (2026-11-28 06:24:44 UTC, status `SUCCESSFUL`). Rolling back this release means restoring that backup and then deploying image `25cb60f`.
+
+| Check | Result |
+|---|---|
+| Deploy demo run 46122143300 (push of `426da1f`) | Migration job `nutgpuhub-migrate-vv98n` completed; smoke checks passed; revision `nutgpuhub-00010-4jv` serves 100% of traffic |
+| `/api/version` and footer | `426da1fd3c944552882b3866d7ede8a6de593c75`; footer "Release 426da1f" |
+
+The live checks were run on 2026-11-28 through Claude Code in the browser. Tanadet Nuchaikaew signed in to each seed account; Claude Code did the clicks and read the API responses with the signed-in session.
+
+| Check | Account | Result |
+|---|---|---|
+| Sprint 1 path | `student-a`, `operator-a`, `student-b` | `student-a` booked slot 7 (GPU-01, 2026-12-01 15:00), and the booking showed in My bookings. The operator schedule showed slot 7 held by `student-a`. `student-b` got `404 BOOKING_NOT_FOUND` for `student-a`'s booking #8. |
+| F-05 cancel | `student-a` | Booking #7 cancelled: still listed as Cancelled ("Cancelled at 16:15 on 2026-11-28"); slot 7 was bookable again and was rebooked as #8 |
+| F-07 close | `operator-a`, `student-b`, `student-a` | Operator opened slots 10 and 11 (GPU-01, 2026-12-03 10:00 and 11:00) and closed slot 11; the schedule showed it Closed. Neither student saw slot 11; `POST /api/v1/bookings` for it returned `409 SLOT_CLOSED` |
+| F-06 reschedule | `student-a` | #8 moved to slot 10: #8 `rescheduled` with "New booking #9", #9 `confirmed` with "Moved from booking #8", slot 7 free again |
+| NFR-02 after redeploy | `student-a` | Deploy demo run 46129996706 redeployed image `426da1f` (migration and seed skipped) to revision `nutgpuhub-00011-c4f`. All eight `student-a` bookings matched the snapshot taken before the redeploy (#7 `cancelled`, #8 `rescheduled`, #9 `confirmed`), the same session still worked, and slot 11 still returned `409 SLOT_CLOSED` |
+
+Test data left on the live site: bookings #7, #8 and #9 of `student-a`, and slots 10 (booked by #9) and 11 (closed) on GPU-01 on 2026-12-03. The earlier bookings #1 to #6, left over from earlier live checks (`prisma/seed.ts` creates only accounts and machines), were not changed.
 
 ## Version history
 
@@ -195,3 +216,4 @@ TC-X-01 was listed in the regression set of the test specification but had not b
 | 0.6 | 2026-11-27 | Tanadet Nuchaikaew | PR #70 review: Thawat Boonsuk's mutation runs; new TC-MOVE-06 case for one student's two moves into one hour, with a `bookingConflict` mutation check. |
 | 0.7 | 2026-11-27 | Tanadet Nuchaikaew | PR #71 review: the mutation and rerun checks credited to Thawat Boonsuk and Tanadet Nuchaikaew were run through Claude Code; each row now says so, to match the AI-use declarations. |
 | 0.8 | 2026-11-28 | Tanadet Nuchaikaew | Release regression at `c506704` and TC-X-01 (cross-feature), added before the Sprint 2 release. |
+| 0.9 | 2026-11-28 | Tanadet Nuchaikaew | Deployed release check after PR #75: backup, deploy run, live checks of F-05 to F-07 and the Sprint 1 path, and NFR-02 across a redeploy. Bookings #1 to #6 called earlier bookings, not seed data (PR #76 review). |

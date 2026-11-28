@@ -4,6 +4,7 @@ import express, { type CookieOptions, type ErrorRequestHandler } from 'express';
 import { asyncRoute, currentAccount, sendError } from './http.js';
 import { createMachineRouter } from './machines.js';
 import { createStudentRouter } from './bookings.js';
+import { createSummaryRouter } from './summary.js';
 import { verifyPassword } from './password.js';
 import { createSessionGuard, hashToken, readSessionToken, sessionCookie } from './session.js';
 
@@ -106,6 +107,7 @@ export function createApp(
   api.use('/auth', auth);
   api.use('/machines', createMachineRouter(database, clock, guard));
   api.use(createStudentRouter(database, clock, guard));
+  api.use(createSummaryRouter(database, clock, guard));
   api.use((_request, response) => sendError(response, 404, 'NOT_FOUND', 'The requested resource does not exist.'));
 
   const apiError: ErrorRequestHandler = (error, _request, response, _next) => {
