@@ -22,7 +22,7 @@
 | F-05 | FR-06.1 to FR-06.3 | Contract 0.3 accepted (PR #67). Implemented and tested; merged into `sprint-2-staging` in PR #68 (see [Sprint 2 verification](sprints/sprint-2/verification.md)). Deployed check after the Sprint 2 release. |
 | F-06 | FR-07.1 to FR-07.3 | Contract 0.3 accepted (PR #67) (AC-30 to AC-36, AC-42, AC-43; D-08, D-10). Implemented and tested; merged into `sprint-2-staging` in PR #70, with an extra race test in PR #71. Deployed check after the Sprint 2 release. |
 | F-07 | FR-08.1 to FR-08.2 | Contract 0.3 accepted (PR #67) (AC-37 to AC-41, AC-44; D-13), including closure/booking serialization. Implemented and tested; merged into `sprint-2-staging` in PR #69. Deployed check after the Sprint 2 release. |
-| F-08 | FR-09.1 to FR-09.2 | Sprint 3 Backlog; contract drafted (AC-45 to AC-51, records D-11); Deliverable 2 slice is the API with AC-45 to AC-50. |
+| F-08 | FR-09.1 to FR-09.2 | Sprint 3 in progress (PR #77): summary API with AC-45 to AC-50 and a minimal Summary section implemented and tested on the feature branch. AC-51 and TC-E2E-08 are remaining work for 13 December. |
 
 F-02 supplies the schedule; F-04 adds its reservation details. UI-01 (#6), integrated acceptance evidence, release preparation and documentation are supporting work items; they do not introduce new product feature IDs. See [work tracking](work-tracking.md) and the [verification record](sprints/sprint-1/verification.md).
 
@@ -41,3 +41,4 @@ See the [requirements mapping](traceability.md), [sprint outcomes](sprints/plan.
 | 0.7 | 2026-11-26 | Tanadet Nuchaikaew | PR #67 review: contract 0.2 AC ranges; decisions shown as proposed. |
 | 0.8 | 2026-11-27 | Tanadet Nuchaikaew | Contracts accepted in PR #67; F-05 implemented on its feature branch. |
 | 0.9 | 2026-11-27 | Tanadet Nuchaikaew | F-08 contract drafted with the Sprint 3 test specification; F-05 to F-07 status now merged into `sprint-2-staging` (PR #72 review). |
+| 0.10 | 2026-11-28 | Tanadet Nuchaikaew | F-08 Deliverable 2 slice implemented and tested in PR #77. |

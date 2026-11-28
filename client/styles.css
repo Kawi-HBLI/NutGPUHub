@@ -118,6 +118,11 @@ label { font-size: var(--text-sm); font-weight: 650; }
 .booking-detail p { margin: var(--space-4) 0; }
 .booking-detail > a { display: inline-flex; align-items: center; min-height: 2.75rem; font-weight: 650; }
 .operator-workspace { grid-template-columns: minmax(17rem, 0.8fr) minmax(0, 1.5fr); }
+.summary-counts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-3); margin: var(--space-4) 0 0; }
+.summary-result { margin-top: var(--space-5); }
+.summary-counts > div { display: flex; flex-direction: column; justify-content: space-between; padding: var(--space-4); background: var(--surface-soft); border-radius: var(--radius-md); }
+.summary-counts dt { color: var(--muted); font-size: var(--text-sm); }
+.summary-counts dd { margin: var(--space-2) 0 0; font-size: 1.75rem; font-weight: 700; font-variant-numeric: tabular-nums; }
 .preview { margin: 0; padding: var(--space-4); background: var(--surface-soft); border-radius: var(--radius-md); color: var(--muted); font-size: var(--text-sm); line-height: 1.7; }
 .table-wrap { width: 100%; overflow-x: auto; }
 table { width: 100%; border-collapse: collapse; table-layout: fixed; font-variant-numeric: tabular-nums; text-align: left; }
