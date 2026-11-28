@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { apiRequest, bangkokToday, formatBangkokTime } from './api';
 import { Alert, Button, Card, Input, Select, StatusBadge, Table } from './components';
+import { SummaryCard } from './summary';
 
 type Machine = { machineId: number; machineCode: string };
 type Slot = {
@@ -145,6 +146,7 @@ export function OperatorWorkspace() {
           </Table>
         )}
       </Card>
+      <SummaryCard machines={machines.data} />
     </div>
   );
 }

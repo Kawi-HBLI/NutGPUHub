@@ -17,28 +17,31 @@ export function slotView(slot: SlotRecord) {
   };
 }
 
+/**
+ * Finds the machine and checks that the signed-in operator is assigned to it. Sends 404 or 403 otherwise.
+ * Any value that is not a single positive integer string (empty, repeated, `x`) is an unknown machine.
+ */
+export async function assignedMachine(database: PrismaClient, rawId: unknown, response: Response) {
+  const id = typeof rawId === 'string' && /^[1-9]\d{0,9}$/.test(rawId) ? Number(rawId) : NaN;
+  const machine = Number.isSafeInteger(id) && id <= 2_147_483_647
+    ? await database.gpuMachine.findUnique({ where: { id } })
+    : null;
+  if (!machine) {
+    sendError(response, 404, 'MACHINE_NOT_FOUND', 'The GPU machine does not exist.');
+    return null;
+  }
+  if (machine.operatorId !== currentAccount(response).id) {
+    sendError(response, 403, 'MACHINE_NOT_ASSIGNED', 'You are not assigned to this GPU machine.');
+    return null;
+  }
+  return machine;
+}
+
 /** F-02: operators list assigned machines, read a machine's day schedule and open slots. */
 export function createMachineRouter(database: PrismaClient, clock: () => number, guard: Guard) {
   const router = express.Router();
   // Guards are attached per route so unmatched paths still reach the API's 404 handler.
   const operatorOnly = [guard.requireAccount, guard.requireRole('operator')];
-
-  /** Finds the machine and checks that the signed-in operator is assigned to it. Sends 404 or 403 otherwise. */
-  async function assignedMachine(rawId: string, response: Response) {
-    const id = /^[1-9]\d{0,9}$/.test(rawId) ? Number(rawId) : NaN;
-    const machine = Number.isSafeInteger(id) && id <= 2_147_483_647
-      ? await database.gpuMachine.findUnique({ where: { id } })
-      : null;
-    if (!machine) {
-      sendError(response, 404, 'MACHINE_NOT_FOUND', 'The GPU machine does not exist.');
-      return null;
-    }
-    if (machine.operatorId !== currentAccount(response).id) {
-      sendError(response, 403, 'MACHINE_NOT_ASSIGNED', 'You are not assigned to this GPU machine.');
-      return null;
-    }
-    return machine;
-  }
 
   router.get('/', ...operatorOnly, asyncRoute(async (_request, response) => {
     const machines = await database.gpuMachine.findMany({
@@ -49,7 +52,7 @@ export function createMachineRouter(database: PrismaClient, clock: () => number,
   }));
 
   router.get('/:machineId/slots', ...operatorOnly, asyncRoute(async (request, response) => {
-    const machine = await assignedMachine(request.params.machineId, response);
+    const machine = await assignedMachine(database, request.params.machineId, response);
     if (!machine) return;
     const day = bangkokDayRange(request.query.date);
     if (!day) {
@@ -74,7 +77,7 @@ export function createMachineRouter(database: PrismaClient, clock: () => number,
   }));
 
   router.post('/:machineId/slots', ...operatorOnly, asyncRoute(async (request, response) => {
-    const machine = await assignedMachine(request.params.machineId, response);
+    const machine = await assignedMachine(database, request.params.machineId, response);
     if (!machine) return;
     const startAt = parseOffsetTimestamp(request.body?.startAt);
     if (!startAt) {
@@ -104,7 +107,7 @@ export function createMachineRouter(database: PrismaClient, clock: () => number,
 
   /** F-07 (AC-37, AC-39 to AC-41): the assigned operator closes an upcoming slot with no confirmed booking. */
   router.post('/:machineId/slots/:slotId/close', ...operatorOnly, asyncRoute(async (request, response) => {
-    const machine = await assignedMachine(request.params.machineId, response);
+    const machine = await assignedMachine(database, request.params.machineId, response);
     if (!machine) return;
     const slotId = /^[1-9]\d{0,9}$/.test(request.params.slotId) ? Number(request.params.slotId) : NaN;
     if (!Number.isSafeInteger(slotId) || slotId > 2_147_483_647) {
