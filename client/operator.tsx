@@ -5,6 +5,7 @@ import { Alert, Button, Card, Input, Select, StatusBadge, Table } from './compon
 type Machine = { machineId: number; machineCode: string };
 type Slot = {
   slotId: number; machineId: number; startAt: string; endAt: string;
+  closedAt: string | null;
   booking: { bookingId: number; studentUsername: string } | null;
 };
 type Load<T> = { state: 'loading' } | { state: 'error'; message: string } | { state: 'ready'; data: T };
@@ -22,6 +23,9 @@ export function OperatorWorkspace() {
   const [pending, setPending] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   const [notice, setNotice] = useState<{ kind: 'error' | 'success'; text: string } | null>(null);
+  // F-07: the slot whose closure is awaiting confirmation, and the result of the last close.
+  const [confirming, setConfirming] = useState<number | null>(null);
+  const [scheduleNotice, setScheduleNotice] = useState<{ kind: 'error' | 'success'; text: string } | null>(null);
 
   useEffect(() => {
     void apiRequest<Machine[]>('/machines').then((result) => {
@@ -49,6 +53,17 @@ export function OperatorWorkspace() {
     });
     return () => { active = false; };
   }, [machineId, date, refreshKey]);
+
+  async function closeSlot(slot: Slot) {
+    if (machineId === null) return;
+    setPending(true);
+    const result = await apiRequest<Slot>(`/machines/${machineId}/slots/${slot.slotId}/close`, { method: 'POST' });
+    setPending(false);
+    setConfirming(null);
+    // Success or refusal, reload the schedule so the row shows what the API now holds.
+    setScheduleNotice(result.ok ? { kind: 'success', text: 'Slot closed.' } : { kind: 'error', text: result.error.message });
+    setRefreshKey(value => value + 1);
+  }
 
   async function openSlot(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -97,6 +112,7 @@ export function OperatorWorkspace() {
       </Card>
       <Card aria-labelledby="schedule-heading">
         <div className="card-heading"><h2 id="schedule-heading">{date ? `Schedule for ${date}` : 'Schedule'}</h2><p>Bookings and open slots for the selected machine. Bangkok time.</p></div>
+        {scheduleNotice && <Alert tone={scheduleNotice.kind}>{scheduleNotice.text}</Alert>}
         {slots.state === 'no-date' && <Alert tone="empty">Choose a date to see the schedule.</Alert>}
         {slots.state === 'loading' && <Alert tone="loading">Loading schedule…</Alert>}
         {slots.state === 'error' && <Alert tone="error">{slots.message}</Alert>}
@@ -104,15 +120,28 @@ export function OperatorWorkspace() {
         {slots.state === 'ready' && slots.data.length > 0 && (
           <Table caption={`Slots and reservations for ${date}`}>
             <thead><tr><th scope="col">Time and reservation</th></tr></thead>
-            <tbody>{slots.data.map(slot => (
-              <tr key={slot.slotId}><td><div className="schedule-summary">
-                {formatBangkokTime(slot.startAt)}–{formatBangkokTime(slot.endAt)} ·{' '}
-                {slot.booking
-                  ? <><StatusBadge tone="booked">Booked by <strong>{slot.booking.studentUsername}</strong></StatusBadge><small>(booking #{slot.booking.bookingId})</small></>
-                  : <StatusBadge tone={new Date(slot.startAt).getTime() <= Date.now() ? 'past' : 'available'}>
-                    {new Date(slot.startAt).getTime() <= Date.now() ? 'Started / past' : 'Available'}</StatusBadge>}
-              </div></td></tr>
-            ))}</tbody>
+            <tbody>{slots.data.map(slot => {
+              const started = new Date(slot.startAt).getTime() <= Date.now();
+              const time = formatBangkokTime(slot.startAt);
+              // The API decides; the UI only offers Close on upcoming, open, unbooked rows (AC-37, AC-39).
+              const closable = !slot.closedAt && !slot.booking && !started;
+              return (
+                <tr key={slot.slotId}><td><div className="schedule-summary">
+                  {time}–{formatBangkokTime(slot.endAt)} ·{' '}
+                  {slot.closedAt
+                    ? <StatusBadge tone="past">Closed</StatusBadge>
+                    : slot.booking
+                      ? <><StatusBadge tone="booked">Booked by <strong>{slot.booking.studentUsername}</strong></StatusBadge><small>(booking #{slot.booking.bookingId})</small></>
+                      : <StatusBadge tone={started ? 'past' : 'available'}>{started ? 'Started / past' : 'Available'}</StatusBadge>}
+                  {closable && confirming !== slot.slotId && <Button variant="secondary" disabled={pending}
+                    aria-label={`Close ${time}`} onClick={() => { setScheduleNotice(null); setConfirming(slot.slotId); }}>Close</Button>}
+                  {closable && confirming === slot.slotId && <span className="booking-actions">
+                    <Button disabled={pending} aria-busy={pending} onClick={() => void closeSlot(slot)}>Confirm close</Button>
+                    <Button variant="secondary" disabled={pending} onClick={() => setConfirming(null)}>Keep open</Button>
+                  </span>}
+                </div></td></tr>
+              );
+            })}</tbody>
           </Table>
         )}
       </Card>

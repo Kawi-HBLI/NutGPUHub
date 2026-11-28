@@ -13,9 +13,9 @@ enum Role {
 }
 
 model User {
-  id           Int       @id @default(autoincrement())
-  username     String    @unique @db.VarChar(80)
-  passwordHash String    @map("password_hash")
+  id           Int          @id @default(autoincrement())
+  username     String       @unique @db.VarChar(80)
+  passwordHash String       @map("password_hash")
   role         Role
   sessions     Session[]
   machines     GpuMachine[]
@@ -39,6 +39,8 @@ model Slot {
   id        Int        @id @default(autoincrement())
   machineId Int        @map("machine_id")
   startAt   DateTime   @map("start_at") @db.Timestamptz(3)
+  /// F-07: set once when the assigned operator closes the slot; null while open (D-13: no reopen).
+  closedAt  DateTime?  @map("closed_at") @db.Timestamptz(3)
   machine   GpuMachine @relation(fields: [machineId], references: [id], onDelete: Cascade)
   bookings  Booking[]
 
@@ -48,16 +50,26 @@ model Slot {
 }
 
 model Booking {
-  id          Int      @id @default(autoincrement())
-  slotId      Int      @map("slot_id")
-  studentId   Int      @map("student_id")
-  slotStartAt DateTime @map("slot_start_at") @db.Timestamptz(3)
-  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
-  slot        Slot     @relation(fields: [slotId, slotStartAt], references: [id, startAt], onDelete: Restrict)
-  student     User     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  id                Int       @id @default(autoincrement())
+  slotId            Int       @map("slot_id")
+  studentId         Int       @map("student_id")
+  slotStartAt       DateTime  @map("slot_start_at") @db.Timestamptz(3)
+  createdAt         DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  /// confirmed, cancelled or rescheduled (checked by bookings_status_check).
+  status            String    @default("confirmed")
+  /// Set exactly when status is cancelled (bookings_cancelled_at_check).
+  cancelledAt       DateTime? @map("cancelled_at") @db.Timestamptz(3)
+  /// F-06: the booking this one replaced through a reschedule; a booking is replaced at most once.
+  replacesBookingId Int?      @unique @map("replaces_booking_id")
+  replaces          Booking?  @relation("BookingReplacement", fields: [replacesBookingId], references: [id], onDelete: Restrict)
+  replacedBy        Booking?  @relation("BookingReplacement")
+  slot              Slot      @relation(fields: [slotId, slotStartAt], references: [id, startAt], onDelete: Restrict)
+  student           User      @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
-  @@unique([slotId])
-  @@unique([studentId, slotStartAt])
+  // Exclusivity (BR-01, BR-04) is enforced by the partial unique indexes
+  // bookings_confirmed_slot_key and bookings_confirmed_student_hour_key, declared only in
+  // migration 20261127000100_booking_status because Prisma cannot express partial indexes.
+  @@index([slotId])
   @@map("bookings")
 }
 

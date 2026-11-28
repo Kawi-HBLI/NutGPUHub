@@ -2,6 +2,7 @@ import { Prisma, type PrismaClient } from '@prisma/client';
 import express, { type Response } from 'express';
 import { asyncRoute, currentAccount, sendError } from './http.js';
 import type { createSessionGuard } from './session.js';
+import { lockSlot } from './slot-lock.js';
 import { bangkokDayRange, isOnTheHour, parseOffsetTimestamp, slotEnd } from './time.js';
 
 type Guard = ReturnType<typeof createSessionGuard>;
@@ -58,13 +59,15 @@ export function createMachineRouter(database: PrismaClient, clock: () => number,
     const slots = await database.slot.findMany({
       where: { machineId: machine.id, startAt: { gte: day.start, lt: day.end } },
       orderBy: { startAt: 'asc' },
-      include: { bookings: { select: { id: true, student: { select: { username: true } } } } },
+      // F-05: only the confirmed booking holds the slot; cancelled rows are history (AC-27).
+      include: { bookings: { where: { status: 'confirmed' }, select: { id: true, student: { select: { username: true } } } } },
     });
-    // F-04 (AC-14): the assigned operator sees who booked each slot. A slot has at most one booking (BR-01).
+    // F-04 (AC-14): the assigned operator sees who booked each slot. A slot has at most one confirmed booking (BR-01).
     response.json(slots.map(slot => {
       const booking = slot.bookings[0];
       return {
         ...slotView(slot),
+        closedAt: slot.closedAt ? slot.closedAt.toISOString() : null,
         booking: booking ? { bookingId: booking.id, studentUsername: booking.student.username } : null,
       };
     }));
@@ -97,6 +100,38 @@ export function createMachineRouter(database: PrismaClient, clock: () => number,
       }
       throw error;
     }
+  }));
+
+  /** F-07 (AC-37, AC-39 to AC-41): the assigned operator closes an upcoming slot with no confirmed booking. */
+  router.post('/:machineId/slots/:slotId/close', ...operatorOnly, asyncRoute(async (request, response) => {
+    const machine = await assignedMachine(request.params.machineId, response);
+    if (!machine) return;
+    const slotId = /^[1-9]\d{0,9}$/.test(request.params.slotId) ? Number(request.params.slotId) : NaN;
+    if (!Number.isSafeInteger(slotId) || slotId > 2_147_483_647) {
+      sendError(response, 404, 'SLOT_NOT_FOUND', 'The slot does not exist on this machine.');
+      return;
+    }
+    const now = clock();
+    type Refusal = readonly [status: number, code: string, message: string];
+    const outcome: { refusal: Refusal } | { slot: SlotRecord & { closedAt: Date | null } } = await database.$transaction(async tx => {
+      const slot = await lockSlot(tx, slotId);
+      if (!slot || slot.machineId !== machine.id) {
+        return { refusal: [404, 'SLOT_NOT_FOUND', 'The slot does not exist on this machine.'] as Refusal };
+      }
+      if (slot.closedAt) return { refusal: [409, 'SLOT_CLOSED', 'This slot is already closed.'] as Refusal };
+      // D-13: closing uses "upcoming" (before startAt), not the 30-minute booking cutoff.
+      if (slot.startAt.getTime() <= now) return { refusal: [409, 'SLOT_ALREADY_STARTED', 'This slot has already started.'] as Refusal };
+      if (await tx.booking.count({ where: { slotId, status: 'confirmed' } }) > 0) {
+        return { refusal: [409, 'SLOT_ALREADY_BOOKED', 'A student has booked this slot.'] as Refusal };
+      }
+      return { slot: await tx.slot.update({ where: { id: slotId }, data: { closedAt: new Date(now) } }) };
+    });
+    if ('refusal' in outcome) {
+      const [status, code, message] = outcome.refusal;
+      sendError(response, status, code, message);
+      return;
+    }
+    response.json({ ...slotView(outcome.slot), closedAt: outcome.slot.closedAt!.toISOString() });
   }));
 
   return router;
