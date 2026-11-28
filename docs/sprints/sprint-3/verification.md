@@ -40,10 +40,21 @@ Each change was made by hand in `server/summary.ts`, the TC-SUM tests were run, 
 
 The operator page has a Summary card with From, To, a machine choice (All my machines omits `machineId`) and the three counts. It was checked through Claude Code with a temporary Playwright script, not committed, against the local build at 1280 px and 390 px widths: the counts showed 3, 0, 3 for three free slots on one date, and the card stacked under the other cards on the phone width with no horizontal scroll. The committed browser test for it is TC-E2E-08, planned for 13 December.
 
-Not covered yet: the deployed check runs after the candidate release reaches `main`.
+## Regression on `sprint-3-staging`
+
+Run through Claude Code by Tanadet Nuchaikaew on the local PostgreSQL 16 test database, at `b116103` (PR #76 and #77 merged, so `main` with TC-X-01 is included).
+
+| Check | Result |
+|---|---|
+| `npm test` | 74 passed (74), 13 files |
+| `npm run test:e2e` | 7 passed |
+| `npm run verify:restart` | TC-PERSIST-01 and the cancel, close and reschedule parts of TC-PERSIST-02 passed |
+
+Not covered yet: the deployed check runs after the `d2-candidate` release reaches `main`.
 
 ## Version history
 
 | Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1 | 2026-11-28 | Tanadet Nuchaikaew | F-08 slice: TDD order, CI runs 46130533131 (RED) and 46130817201 (GREEN), AC-45 to AC-50 results, three mutation checks, Summary section check. |
+| 0.2 | 2026-11-28 | Tanadet Nuchaikaew | Regression on `sprint-3-staging` at `b116103` before the candidate release. |

@@ -9,16 +9,16 @@ Sprint 1 test IDs refer to the [test specification](sprints/sprint-1/test-specif
 | FR-03 | F-02 | 1 | AC-04, AC-05, AC-08, AC-10, AC-17, AC-21. `TC-SLOT-01`, `TC-SLOT-03`, `TC-ACCESS-01`, `TC-VALID-01`. |
 | FR-04 | F-03 | 1 | AC-11, AC-22. `TC-SLOT-02`, `TC-VALID-01`. |
 | FR-05 | F-02, F-03, F-04 | 1 | AC-01, AC-09, AC-10, AC-14, AC-18. `TC-BOOK-01`, `TC-ACCESS-01`, `TC-ACCESS-02`, `TC-E2E-01`. |
-| FR-06 | F-05 | 2 | AC-24 to AC-29. `TC-CANCEL-01` to `TC-CANCEL-05`, `TC-PERSIST-02`, `TC-DB-01`, `TC-DB-02`, `TC-E2E-05`. Planned, not run. |
-| FR-07 | F-06 | 2 | AC-30 to AC-36, AC-42, AC-43. `TC-MOVE-01` to `TC-MOVE-09`, `TC-PERSIST-02`, `TC-E2E-06`. Planned, not run. |
-| FR-08 | F-07 | 2 | AC-37 to AC-41, AC-44. `TC-CLOSE-01` to `TC-CLOSE-06`, `TC-PERSIST-02`, `TC-MOVE-07`, `TC-E2E-07`. Planned, not run. |
-| FR-09 | F-08 | 3 | AC-45 to AC-51 (Sprint 3 contract 0.2). Run on PR #77, see the [Sprint 3 verification](sprints/sprint-3/verification.md): `TC-SUM-01` to `TC-SUM-07`. Planned: `TC-E2E-08` (AC-51). |
-| BR-01 | F-02, F-03 | 1 | AC-02, AC-03, AC-04, AC-05, AC-17. `TC-TIME-01`, `TC-SLOT-01`, `TC-SLOT-03`, `TC-BOOK-02`, `TC-BOOK-03`. Sprint 2 (planned, not run): AC-27, AC-35, AC-41, AC-42, AC-44. `TC-DB-01`, `TC-CANCEL-04`, `TC-MOVE-06`, `TC-MOVE-08`, `TC-CLOSE-05`, `TC-CLOSE-06`. |
-| BR-02 | F-01, F-02, F-03, F-04, F-08 | 1 | AC-08, AC-09, AC-10, AC-12, AC-14, AC-18. `TC-BOOK-01`, `TC-ACCESS-01`, `TC-ACCESS-02`, `TC-ACCESS-03`. Sprint 2 (run on `sprint-2-staging`, see the [Sprint 2 verification](sprints/sprint-2/verification.md)): AC-25, AC-34, AC-40. `TC-CANCEL-02`, `TC-MOVE-05`, `TC-CLOSE-04`. Sprint 3 (run on PR #77, see the [Sprint 3 verification](sprints/sprint-3/verification.md)): AC-50. `TC-SUM-06`. |
-| BR-03 | F-06 | 2 | AC-30, AC-31, AC-35, AC-42, AC-43, AC-44. `TC-MOVE-01`, `TC-MOVE-02`, `TC-MOVE-06`, `TC-MOVE-08`, `TC-MOVE-09`, `TC-CLOSE-06`. Planned, not run. |
-| BR-04 | F-03, later F-05 and F-06 | 1 | AC-19. `TC-BOOK-04`. Sprint 2 (planned, not run): AC-27, AC-32, AC-42. `TC-CANCEL-04`, `TC-MOVE-03`, `TC-MOVE-08`. |
-| NFR-01 | Authentication and authorization across protected routes | 1 | `TC-AUTH-02`, `TC-AUTH-03`, `TC-ACCESS-01`, `TC-ACCESS-02`, `TC-ACCESS-03`. Sprint 2 (run on `sprint-2-staging`, see the [Sprint 2 verification](sprints/sprint-2/verification.md)): AC-25, AC-34, AC-40. `TC-CANCEL-02`, `TC-MOVE-05`, `TC-CLOSE-04`. Sprint 3 (run on PR #77, see the [Sprint 3 verification](sprints/sprint-3/verification.md)): AC-50. `TC-SUM-06`. |
-| NFR-02 | F-03, F-04 and durable storage | 1 | AC-15. `TC-PERSIST-01`. Repeat the persistence check on the Cloud Run release after Lab 5. Sprint 2 (planned, not run): AC-29, AC-30, AC-37. `TC-PERSIST-02` and the deployed-release check. |
+| FR-06 | F-05 | 2 | AC-24 to AC-29. `TC-CANCEL-01` to `TC-CANCEL-05`, `TC-PERSIST-02`, `TC-DB-01`, `TC-DB-02`, `TC-E2E-05`. Passed; released in `sprint-2` (`426da1f`). |
+| FR-07 | F-06 | 2 | AC-30 to AC-36, AC-42, AC-43. `TC-MOVE-01` to `TC-MOVE-09`, `TC-PERSIST-02`, `TC-E2E-06`. Passed; released in `sprint-2` (`426da1f`). |
+| FR-08 | F-07 | 2 | AC-37 to AC-41, AC-44. `TC-CLOSE-01` to `TC-CLOSE-06`, `TC-PERSIST-02`, `TC-MOVE-07`, `TC-E2E-07`. Passed; released in `sprint-2` (`426da1f`). |
+| FR-09 | F-08 | 3 | AC-45 to AC-51 (Sprint 3 contract 0.2). Passed on `sprint-3-staging` (PR #77), see the [Sprint 3 verification](sprints/sprint-3/verification.md): `TC-SUM-01` to `TC-SUM-07`. Planned: `TC-E2E-08` (AC-51). |
+| BR-01 | F-02, F-03 | 1 | AC-02, AC-03, AC-04, AC-05, AC-17. `TC-TIME-01`, `TC-SLOT-01`, `TC-SLOT-03`, `TC-BOOK-02`, `TC-BOOK-03`. Sprint 2 (passed, released in `sprint-2`): AC-27, AC-35, AC-41, AC-42, AC-44. `TC-DB-01`, `TC-CANCEL-04`, `TC-MOVE-06`, `TC-MOVE-08`, `TC-CLOSE-05`, `TC-CLOSE-06`. |
+| BR-02 | F-01, F-02, F-03, F-04, F-08 | 1 | AC-08, AC-09, AC-10, AC-12, AC-14, AC-18. `TC-BOOK-01`, `TC-ACCESS-01`, `TC-ACCESS-02`, `TC-ACCESS-03`. Sprint 2 (passed, released in `sprint-2`, see the [Sprint 2 verification](sprints/sprint-2/verification.md)): AC-25, AC-34, AC-40. `TC-CANCEL-02`, `TC-MOVE-05`, `TC-CLOSE-04`. Sprint 3 (passed on `sprint-3-staging`, PR #77, see the [Sprint 3 verification](sprints/sprint-3/verification.md)): AC-50. `TC-SUM-06`. |
+| BR-03 | F-06 | 2 | AC-30, AC-31, AC-35, AC-42, AC-43, AC-44. `TC-MOVE-01`, `TC-MOVE-02`, `TC-MOVE-06`, `TC-MOVE-08`, `TC-MOVE-09`, `TC-CLOSE-06`. Passed; released in `sprint-2` (`426da1f`). |
+| BR-04 | F-03, later F-05 and F-06 | 1 | AC-19. `TC-BOOK-04`. Sprint 2 (passed, released in `sprint-2`): AC-27, AC-32, AC-42. `TC-CANCEL-04`, `TC-MOVE-03`, `TC-MOVE-08`. |
+| NFR-01 | Authentication and authorization across protected routes | 1 | `TC-AUTH-02`, `TC-AUTH-03`, `TC-ACCESS-01`, `TC-ACCESS-02`, `TC-ACCESS-03`. Sprint 2 (passed, released in `sprint-2`, see the [Sprint 2 verification](sprints/sprint-2/verification.md)): AC-25, AC-34, AC-40. `TC-CANCEL-02`, `TC-MOVE-05`, `TC-CLOSE-04`. Sprint 3 (passed on `sprint-3-staging`, PR #77, see the [Sprint 3 verification](sprints/sprint-3/verification.md)): AC-50. `TC-SUM-06`. |
+| NFR-02 | F-03, F-04 and durable storage | 1 | AC-15. `TC-PERSIST-01`. Repeat the persistence check on the Cloud Run release after Lab 5. Sprint 2 (passed, released in `sprint-2`): AC-29, AC-30, AC-37. `TC-PERSIST-02`, and the deployed check across a redeploy (revision `nutgpuhub-00011-c4f`) in the [Sprint 2 verification](sprints/sprint-2/verification.md#deployed-release-check). |
 | NFR-03 | F-01 credential and session handling | 1 | AC-07, AC-16, AC-23. `TC-AUTH-02`, `TC-AUTH-03`, `TC-AUTH-04`. |
 
 ## Subrequirement coverage
@@ -45,20 +45,33 @@ Each dotted ID is defined in the SRS and inherits its original parent. Existing 
 | FR-05.2 | F-03 | 1 | AC-01, AC-09 | TC-BOOK-01, TC-ACCESS-02 |
 | FR-05.3 | F-02, F-04 | 1 | AC-10, AC-14, AC-21 | TC-SLOT-01, TC-ACCESS-01, TC-ACCESS-02, TC-VALID-01 |
 | FR-05.4 | F-04 | 1 | AC-14 | TC-ACCESS-02, TC-E2E-01 |
-| FR-06.1 | F-05 | 2 | AC-24, AC-25, AC-26, AC-43 | Planned: TC-CANCEL-01, TC-CANCEL-02, TC-CANCEL-03, TC-MOVE-09 |
-| FR-06.2 | F-05 | 2 | AC-27 | Planned: TC-CANCEL-04, TC-E2E-05 |
-| FR-06.3 | F-05 | 2 | AC-24, AC-29 | Planned: TC-CANCEL-01, TC-PERSIST-02 |
-| FR-07.1 | F-06 | 2 | AC-33, AC-34 | Planned: TC-MOVE-04, TC-MOVE-05 |
-| FR-07.2 | F-06 | 2 | AC-30, AC-43 | Planned: TC-MOVE-01, TC-MOVE-09, TC-PERSIST-02, TC-E2E-06 |
-| FR-07.3 | F-06 | 2 | AC-31, AC-32, AC-35, AC-42 | Planned: TC-MOVE-02, TC-MOVE-03, TC-MOVE-06, TC-MOVE-08 |
-| FR-08.1 | F-07 | 2 | AC-37, AC-39, AC-40 | Planned: TC-CLOSE-01, TC-CLOSE-03, TC-CLOSE-04, TC-PERSIST-02 |
-| FR-08.2 | F-07 | 2 | AC-36, AC-38, AC-41, AC-44 | Planned: TC-CLOSE-02, TC-CLOSE-05, TC-CLOSE-06, TC-MOVE-07, TC-E2E-07 |
+| FR-06.1 | F-05 | 2 | AC-24, AC-25, AC-26, AC-43 | Passed (`sprint-2`): TC-CANCEL-01, TC-CANCEL-02, TC-CANCEL-03, TC-MOVE-09 |
+| FR-06.2 | F-05 | 2 | AC-27 | Passed (`sprint-2`): TC-CANCEL-04, TC-E2E-05 |
+| FR-06.3 | F-05 | 2 | AC-24, AC-29 | Passed (`sprint-2`): TC-CANCEL-01, TC-PERSIST-02 |
+| FR-07.1 | F-06 | 2 | AC-33, AC-34 | Passed (`sprint-2`): TC-MOVE-04, TC-MOVE-05 |
+| FR-07.2 | F-06 | 2 | AC-30, AC-43 | Passed (`sprint-2`): TC-MOVE-01, TC-MOVE-09, TC-PERSIST-02, TC-E2E-06 |
+| FR-07.3 | F-06 | 2 | AC-31, AC-32, AC-35, AC-42 | Passed (`sprint-2`): TC-MOVE-02, TC-MOVE-03, TC-MOVE-06, TC-MOVE-08 |
+| FR-08.1 | F-07 | 2 | AC-37, AC-39, AC-40 | Passed (`sprint-2`): TC-CLOSE-01, TC-CLOSE-03, TC-CLOSE-04, TC-PERSIST-02 |
+| FR-08.2 | F-07 | 2 | AC-36, AC-38, AC-41, AC-44 | Passed (`sprint-2`): TC-CLOSE-02, TC-CLOSE-05, TC-CLOSE-06, TC-MOVE-07, TC-E2E-07 |
 | FR-09.1 | F-08 | 3 | AC-46, AC-47, AC-49, AC-50 (Sprint 3 contract 0.2) | Passed on PR #77: TC-SUM-02, TC-SUM-03, TC-SUM-05 to 07 |
 | FR-09.2 | F-08 | 3 | AC-45, AC-48, AC-51 (Sprint 3 contract 0.2) | Passed on PR #77: TC-SUM-01, TC-SUM-04. Planned: TC-E2E-08 |
 
 ## Coverage gaps
 
-Every baseline FR, its observable children, BR and NFR has a feature or responsibility and a sprint. Sprint 1 execution gaps are listed in the [verification record](sprints/sprint-1/verification.md). Sprint 2 requirements have AC and test IDs from the [Sprint 2 test specification](sprints/sprint-2/test-specification.md) (contracts 0.3); they have run on `sprint-2-staging` and are recorded in the [Sprint 2 verification](sprints/sprint-2/verification.md). The deployed-release check runs after the Sprint 2 release. Sprint 3 (FR-09) has AC-45 to AC-51 and test IDs from the [Sprint 3 test specification](sprints/sprint-3/test-specification.md) (contract 0.2); none has run yet.
+Every baseline FR, its observable children, BR and NFR has a feature or responsibility and a sprint. Sprint 1 execution gaps are listed in the [verification record](sprints/sprint-1/verification.md). Sprint 2 requirements have AC and test IDs from the [Sprint 2 test specification](sprints/sprint-2/test-specification.md) (contracts 0.3); they passed on `sprint-2-staging`, were released in `sprint-2` (`426da1f`) and passed the deployed check, all recorded in the [Sprint 2 verification](sprints/sprint-2/verification.md). Sprint 3 (FR-09) has AC-45 to AC-51 and test IDs from the [Sprint 3 test specification](sprints/sprint-3/test-specification.md) (contract 0.2); AC-45 to AC-50 passed on `sprint-3-staging` (PR #77). Not run yet: AC-51 (`TC-E2E-08`), planned for 13 December, and the F-08 deployed check, which runs on the `d2-candidate` release.
+
+## Results at the Deliverable 2 candidate
+
+| Requirement | Feature | Sprint | AC or NFR check | Test files | Result | Version |
+|---|---|---|---|---|---|---|
+| FR-01 to FR-05, BR-01, BR-02, BR-04, NFR-01, NFR-03 | F-01 to F-04 | 1 | AC-01 to AC-23 (BR-02 and NFR-01 through `TC-ACCESS-01` to 03, `TC-AUTH-02`, `TC-AUTH-03`) | `tests/auth`, `slots`, `bookings`, `view-bookings`, `time`, `availability-empty-day` tests; `e2e/bookings.spec.ts`, `cleared-date.spec.ts` | Passed | `sprint-1` (`984c4ad`); rerun in every later suite, last full run 74/74 on `b116103` |
+| FR-06, BR-02, BR-04, NFR-01 | F-05 | 2 | AC-24 to AC-29 (BR-02 and NFR-01: AC-25) | `tests/cancel-booking.test.ts`, `e2e/cancel-booking.spec.ts`, `scripts/process-restart-check.ts` | Passed; live check passed | `sprint-2` (`426da1f`) |
+| FR-07, BR-02, BR-03, BR-04, NFR-01 | F-06 | 2 | AC-30 to AC-36, AC-42, AC-43 (BR-02 and NFR-01: AC-34) | `tests/reschedule.test.ts`, `e2e/reschedule.spec.ts`, `scripts/process-restart-check.ts` | Passed; live check passed | `sprint-2` (`426da1f`) |
+| FR-08, BR-02, NFR-01 | F-07 | 2 | AC-37 to AC-41, AC-44 (BR-02 and NFR-01: AC-40) | `tests/close-slot.test.ts`, `e2e/close-slot.spec.ts`, `scripts/process-restart-check.ts` | Passed; live check passed | `sprint-2` (`426da1f`) |
+| Cross-feature | F-03, F-05 to F-07 | 2 | TC-X-01 | `tests/cross-feature.test.ts` | Passed | `sprint-2` (`426da1f`) |
+| FR-09, BR-02, NFR-01 | F-08 | 3 | AC-45 to AC-50 | `tests/booking-summary.test.ts` | Passed | `sprint-3-staging` (`b116103`) |
+| FR-09 | F-08 | 3 | AC-51 | `TC-E2E-08` (not written) | Not run | Planned for 13 December |
+| NFR-02 | Durable storage | 1, 2 | AC-15, AC-29, AC-30, AC-37 | `scripts/process-restart-check.ts`; deployed redeploy check | Passed | `sprint-2` (`426da1f`), revisions `nutgpuhub-00010-4jv` and `nutgpuhub-00011-c4f` |
 
 ## Approved changes
 
@@ -88,3 +101,4 @@ The November 7 post-F-04 refinement keeps FR-01 to FR-09, F-01 to F-08 and AC-01
 | 0.8 | 2026-11-26 | Tanadet Nuchaikaew | PR #67 review: added the Sprint 2 AC and tests to the BR-01, BR-02, BR-04, NFR-01 and NFR-02 rows and mapped contract 0.2 (AC-42 to AC-44, TC-PERSIST-02). |
 | 0.9 | 2026-11-27 | Tanadet Nuchaikaew | Mapped FR-09, FR-09.1 and FR-09.2 to the draft Sprint 3 AC and test IDs (planned, not run); AC-50 added to BR-02 and NFR-01; Sprint 2 rows point to their recorded runs (PR #72 review). |
 | 0.10 | 2026-11-28 | Tanadet Nuchaikaew | F-08 rows point to the TC-SUM runs on PR #77; TC-E2E-08 stays planned. |
+| 0.11 | 2026-11-28 | Tanadet Nuchaikaew | Deliverable 2: Sprint 2 rows marked passed and released in `sprint-2`; results table at the candidate; F-08 AC-51 and the F-08 deployed check shown as not run. BR-02 and NFR-01 added to the Sprint 1 and F-05 to F-07 result rows (PR #79 review). |
